@@ -1,0 +1,12 @@
+node_modules/
+dist/
+dist-ssr/
+*.local
+.DS_Store
+*.log
+.vscode/
+.idea/
+.vite/
+sarvam_clone/
+sarvam_unified/
+xclone-sarvam.ai-1773058739048/
