@@ -1,4 +1,4 @@
-/* All styles come from /styles/main.css (original pre-built Tailwind CSS) */
+@import "tailwindcss";
 
 /* Smooth scroll */
 html {
@@ -163,4 +163,32 @@ body {
 :focus-visible {
   outline: 2px solid #A5BBFC;
   outline-offset: 2px;
+}
+
+/* ── Interview page scrollbar ────────────────────────── */
+
+.interview-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.interview-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.interview-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 4px;
+}
+
+.interview-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+/* Hide scrollbar for elements that need it */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }

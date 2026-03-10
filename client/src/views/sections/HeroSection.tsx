@@ -20,9 +20,9 @@ export default function HeroSection() {
               <p className="max-w-[800px] font-matter text-tx-secondary md:text-[22px] text-lg text-center leading-[1.6]">AI-powered mock interviews, real-time stress analysis, and personalised coaching<br className="hidden md:block" />to help you land your dream job.</p>
             </div>
             <div className="animate-fade-in-up delay-400">
-              <Link to="/features" className="relative inline-flex items-center justify-center cursor-pointer font-season-mix font-medium transition-all duration-500 overflow-hidden rounded-full hover:duration-700 active:scale-95 active:duration-200 touch-manipulation px-6 py-3.5 text-lg bg-[#131313] text-white shadow-[inset_0_0_12px_rgba(255,255,255,1),0px_0px_2px_0_rgba(0,0,0,0.1)] group btn-glow">
+              <Link to="/interview" className="relative inline-flex items-center justify-center cursor-pointer font-season-mix font-medium transition-all duration-500 overflow-hidden rounded-full hover:duration-700 active:scale-95 active:duration-200 touch-manipulation px-6 py-3.5 text-lg bg-[#131313] text-white shadow-[inset_0_0_12px_rgba(255,255,255,1),0px_0px_2px_0_rgba(0,0,0,0.1)] group btn-glow">
                 <span className="absolute inset-0 opacity-0 transition-opacity duration-700 bg-[linear-gradient(90deg,#131313_0%,#0A2156_33%,#BED2FF_66%,#FF8717_100%)] group-hover:opacity-100 group-active:opacity-100 rounded-full shadow-[inset_0px_0px_12px_2px_rgba(255,255,255,0.5)]" aria-hidden="true" />
-                <span className="z-10 relative flex items-center gap-2 transition-all duration-500">Start Mock Interview</span>
+                <span className="z-10 relative flex items-center gap-2 transition-all duration-500">Start Mock Interview →</span>
               </Link>
             </div>
           </div>

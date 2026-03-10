@@ -1,15 +1,24 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/wise-logo.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="stylesheet" href="/styles/main.css" />
-    <meta name="description" content="W.I.S.E. — AI-powered mock interviews, stress analysis, and personalised coaching to help you ace every interview." />
-    <title>W.I.S.E. | Work Interview Stress Evaluator</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
+
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/svg+xml" href="/wise-logo.svg" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="/styles/main.css" />
+  <meta name="description"
+    content="W.I.S.E. — AI-powered mock interviews, stress analysis, and personalised coaching to help you ace every interview." />
+  <title>W.I.S.E. | Work Interview Stress Evaluator</title>
+  <!-- MediaPipe: real-time face mesh for microexpression analysis -->
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous" async></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous" async></script>
+  <!-- face-api.js: smile / expression detection (local) -->
+  <script src="/face-api.min.js" async></script>
+</head>
+
+<body>
+  <div id="root"></div>
+  <script type="module" src="/src/main.tsx"></script>
+</body>
+
 </html>

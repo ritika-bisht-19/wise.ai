@@ -7,6 +7,8 @@ dist-ssr/
 .vscode/
 .idea/
 .vite/
+.env
+speech_api/venv/
 sarvam_clone/
 sarvam_unified/
 xclone-sarvam.ai-1773058739048/

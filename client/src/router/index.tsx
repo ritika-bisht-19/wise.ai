@@ -8,8 +8,13 @@ import PricingPage from '@/views/pages/PricingPage';
 import ContactPage from '@/views/pages/ContactPage';
 import BlogPage from '@/views/pages/BlogPage';
 import NotFoundPage from '@/views/pages/NotFoundPage';
+import InterviewPage from '@/views/pages/InterviewPage';
 
 export const router = createBrowserRouter([
+  // Interview is a standalone full-screen experience (no navbar/footer)
+  { path: '/interview', element: <InterviewPage /> },
+
+  // All other pages share the AppLayout (navbar + footer)
   {
     element: <AppLayout />,
     children: [
@@ -24,3 +29,4 @@ export const router = createBrowserRouter([
     ],
   },
 ]);
+
