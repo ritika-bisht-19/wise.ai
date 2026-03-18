@@ -103,14 +103,20 @@ export default function CameraPanel({ onStressUpdate }) {
     const prevNoseY = useRef(null);
     const blinkCount = useRef(0);
     const prevBlink = useRef(false);
+    const blinkTimes = useRef([]);
+    const lastBlinkTs = useRef(0);
     const prevLookingUp = useRef(false);
     const gazeEventTimes = useRef([]);
     const prevAvoidance = useRef(false);        // head-turn evasion tracking
     const avoidTimes = useRef([]);           // timestamps of head-avoidance events
     const startTime = useRef(Date.now());
+    const smoothedScore = useRef(0);
+    const stableLevelRef = useRef('calm');
+    const lastUiSyncTs = useRef(0);
     const history = useRef({ eyebrow: [], lip: [], nod: [], sym: [], smile: [] });
     const lastExpressionCheck = useRef(0);
     const lastSmileScore = useRef(0);
+    const expressionInFlight = useRef(false);
 
     const [stress, setStress] = useState({ level: 'calm', score: 0, label: 'Initializing...' });
     const [features, setFeatures] = useState({ eyebrow_raise: 0, lip_tension: 0, head_nod_intensity: 0, symmetry_delta: 0, blink_rate: 0, upward_gaze_rate: 0, head_turn_rate: 0, smile_score: 0 });
@@ -125,16 +131,31 @@ export default function CameraPanel({ onStressUpdate }) {
     };
 
     useEffect(() => {
+        let cancelled = false;
+
+        const waitForFaceApi = async () => {
+            for (let i = 0; i < 30; i++) {
+                if (window.faceapi) return true;
+                await new Promise(r => setTimeout(r, 200));
+            }
+            return false;
+        };
+
         const loadModels = async () => {
-            if (!window.faceapi) return;
+            const faceApiReady = await waitForFaceApi();
+            if (!faceApiReady || cancelled) {
+                console.warn('face-api.js was not available in time. Smile will use landmark fallback.');
+                return;
+            }
             try {
                 await window.faceapi.nets.tinyFaceDetector.loadFromUri('/models/face-api');
                 await window.faceapi.nets.faceExpressionNet.loadFromUri('/models/face-api');
-                setModelsLoaded(true);
-                console.log('FaceAPI models loaded');
+                if (!cancelled) {
+                    setModelsLoaded(true);
+                    console.log('FaceAPI models loaded');
+                }
             } catch (err) {
                 console.error('Error loading FaceAPI models:', err);
-                setModelsLoaded(true); // Fallback so it doesn't stay stuck
             }
         };
         loadModels();
@@ -214,10 +235,20 @@ export default function CameraPanel({ onStressUpdate }) {
                     const lEAR = d(lm[IDX.L_EYE_TOP], lm[IDX.L_EYE_BOT]) / Math.max(d(lm[IDX.L_EYE_L], lm[IDX.L_EYE_R]), 1e-5);
                     const rEAR = d(lm[IDX.R_EYE_TOP], lm[IDX.R_EYE_BOT]) / Math.max(d(lm[IDX.R_EYE_L], lm[IDX.R_EYE_R]), 1e-5);
                     const isBlinking = (lEAR + rEAR) / 2 < 0.23;
-                    if (isBlinking && !prevBlink.current) blinkCount.current++;
+                    if (isBlinking && !prevBlink.current) {
+                        const now = Date.now();
+                        // Debounce blink edges to avoid landmark jitter being counted as many blinks.
+                        if (now - lastBlinkTs.current > 180) {
+                            lastBlinkTs.current = now;
+                            blinkCount.current++;
+                            blinkTimes.current.push(now);
+                        }
+                    }
                     prevBlink.current = isBlinking;
-                    const mins = Math.max((Date.now() - startTime.current) / 60000, 1 / 60);
-                    const blinkRate = blinkCount.current / mins;
+                    const nowForBlink = Date.now();
+                    while (blinkTimes.current.length && nowForBlink - blinkTimes.current[0] > 60000)
+                        blinkTimes.current.shift();
+                    const blinkRate = blinkTimes.current.length;
 
                     // ── 6. Upward gaze rate (GazeTracking pupil centroid method) ────────
                     const { canvas: oc, ctx: octx } = offscreenRef.current;
@@ -249,14 +280,40 @@ export default function CameraPanel({ onStressUpdate }) {
                     const headTurnRate = avoidTimes.current.length;
 
                     // ── 8. Smile Detection ──────────────────────────────────────────────
+                    // Primary: face-api expression model
+                    // Fallback: mouth geometry heuristic from landmarks
                     const nowTS = Date.now();
-                    if (nowTS - lastExpressionCheck.current > 200 && window.faceapi && modelsLoaded) {
+                    if (
+                        nowTS - lastExpressionCheck.current > 250 &&
+                        window.faceapi &&
+                        modelsLoaded &&
+                        !expressionInFlight.current
+                    ) {
                         lastExpressionCheck.current = nowTS;
+                        expressionInFlight.current = true;
                         window.faceapi.detectSingleFace(video, new window.faceapi.TinyFaceDetectorOptions())
                             .withFaceExpressions()
-                            .then(res => { if (res) lastSmileScore.current = res.expressions.happy; });
+                            .then(res => {
+                                if (res) lastSmileScore.current = res.expressions.happy;
+                            })
+                            .catch(() => {
+                                // Keep previous score and rely on fallback for this frame.
+                            })
+                            .finally(() => {
+                                expressionInFlight.current = false;
+                            });
                     }
-                    const smile = smooth('smile', lastSmileScore.current);
+
+                    const mouthCenterY = (lm[IDX.TOP_LIP].y + lm[IDX.BOT_LIP].y) / 2;
+                    const cornerAvgY = (lm[IDX.L_LIP].y + lm[IDX.R_LIP].y) / 2;
+                    const widthNorm = Math.min(Math.max((mW / Math.max(headLen, 1e-5) - 0.38) / 0.22, 0), 1);
+                    const cornerNorm = Math.min(Math.max((mouthCenterY - cornerAvgY + 0.005) / 0.03, 0), 1);
+                    const landmarkSmile = 0.6 * cornerNorm + 0.4 * widthNorm;
+
+                    const baseSmile = modelsLoaded
+                        ? 0.65 * lastSmileScore.current + 0.35 * landmarkSmile
+                        : landmarkSmile;
+                    const smile = smooth('smile', baseSmile);
 
                     // ── Score calculation ─────────────────────────────────────────────
                     const score = Math.min(Math.max(
@@ -270,13 +327,34 @@ export default function CameraPanel({ onStressUpdate }) {
                         0.30 * smile
                         , 0), 1.5);
 
-                    const level = score < 0.35 ? 'calm' : score < 0.65 ? 'mild' : 'high';
+                    // Exponential smoothing + hysteresis to avoid UI flicker.
+                    const scoreAlpha = 0.14;
+                    smoothedScore.current = smoothedScore.current === 0
+                        ? score
+                        : (1 - scoreAlpha) * smoothedScore.current + scoreAlpha * score;
+                    const stableScore = smoothedScore.current;
+
+                    let level = stableLevelRef.current;
+                    if (level === 'calm') {
+                        if (stableScore >= 0.45) level = stableScore >= 0.72 ? 'high' : 'mild';
+                    } else if (level === 'mild') {
+                        if (stableScore < 0.30) level = 'calm';
+                        else if (stableScore >= 0.72) level = 'high';
+                    } else {
+                        if (stableScore < 0.58) level = stableScore < 0.30 ? 'calm' : 'mild';
+                    }
+                    stableLevelRef.current = level;
+
                     const label = { calm: 'Calm', mild: 'Slight Stress', high: 'High Stress' }[level];
                     const newFeatures = { eyebrow_raise: eyebrow, lip_tension: lip, head_nod_intensity: nod, symmetry_delta: symmetry, blink_rate: blinkRate, upward_gaze_rate: gazeUpRate, head_turn_rate: headTurnRate, smile_score: smile };
 
-                    setStress({ level, score, label });
-                    setFeatures(newFeatures);
-                    onStressUpdate?.({ level, score, label, features: newFeatures });
+                    const nowForUi = Date.now();
+                    if (nowForUi - lastUiSyncTs.current >= 120) {
+                        lastUiSyncTs.current = nowForUi;
+                        setStress({ level, score: stableScore, label });
+                        setFeatures(newFeatures);
+                        onStressUpdate?.({ level, score: stableScore, label, features: newFeatures });
+                    }
                 } catch (e) {
                     console.error("CameraPanel Loop Error:", e);
                 }
@@ -290,10 +368,26 @@ export default function CameraPanel({ onStressUpdate }) {
         };
 
         init();
-        return () => camera?.stop();
+        return () => {
+            cancelled = true;
+            camera?.stop();
+        };
     }, []);
 
     const sc = STRESS_COLORS[stress.level];
+    const stressPct = Math.min(Math.max((stress.score / 1.5) * 100, 0), 100);
+    const stabilityPct = Math.round(100 - stressPct);
+    const stabilityState =
+        stabilityPct >= 70 ? 'Stable' :
+        stabilityPct >= 40 ? 'Moderate' : 'Unstable';
+    const stabilityRing =
+        stabilityPct >= 70 ? '#10b981' :
+        stabilityPct >= 40 ? '#f59e0b' : '#ef4444';
+
+    const ringRadius = 22;
+    const ringStroke = 5;
+    const ringCircumference = 2 * Math.PI * ringRadius;
+    const ringOffset = ringCircumference * (1 - stabilityPct / 100);
 
     const metrics = [
         { label: 'Eyebrow', value: features.eyebrow_raise, max: 0.08 },
@@ -321,15 +415,46 @@ export default function CameraPanel({ onStressUpdate }) {
                     className="absolute inset-0 w-full h-full object-cover pointer-events-none"
                 />
 
-                {/* Stress indicator */}
-                <div className={`absolute top-3 left-3 flex items-center gap-2 px-3 py-1.5 rounded-lg backdrop-blur-sm text-[11px] font-semibold ${sc.badge}`}>
-                    <div className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: sc.dot }} />
-                    {stress.label}
-                </div>
+                {/* Behavioral Stability widget */}
+                <div className="absolute top-3 left-3 px-3 py-2.5 rounded-xl border border-white/15 bg-black/65 backdrop-blur-md shadow-[0_8px_24px_rgba(0,0,0,0.35)]">
+                    <div className="flex items-center gap-3">
+                        <div className="relative w-14 h-14 shrink-0">
+                            <svg viewBox="0 0 56 56" className="w-14 h-14">
+                                <circle
+                                    cx="28"
+                                    cy="28"
+                                    r={ringRadius}
+                                    fill="none"
+                                    stroke="rgba(255,255,255,0.2)"
+                                    strokeWidth={ringStroke}
+                                />
+                                <circle
+                                    cx="28"
+                                    cy="28"
+                                    r={ringRadius}
+                                    fill="none"
+                                    stroke={stabilityRing}
+                                    strokeWidth={ringStroke}
+                                    strokeLinecap="round"
+                                    strokeDasharray={ringCircumference}
+                                    strokeDashoffset={ringOffset}
+                                    transform="rotate(-90 28 28)"
+                                />
+                            </svg>
+                            <div className="absolute inset-0 flex items-center justify-center">
+                                <span className="text-[11px] font-semibold text-white tabular-nums">{stabilityPct}%</span>
+                            </div>
+                        </div>
 
-                {/* Score */}
-                <div className="absolute top-3 right-3 px-2.5 py-1.5 rounded-lg bg-black/60 backdrop-blur-sm text-[11px] font-mono text-slate-300">
-                    {stress.score.toFixed(2)}
+                        <div className="min-w-[150px]">
+                            <p className="text-[10px] uppercase tracking-[0.08em] text-slate-300/90">Behavioral Stability</p>
+                            <div className="mt-1 flex items-center gap-2">
+                                <span className="inline-block w-2 h-2 rounded-full" style={{ backgroundColor: stabilityRing }} />
+                                <span className="text-[12px] font-semibold text-white">{stabilityState}</span>
+                                <span className="text-[10px] text-slate-300/80">(Stress {stress.score.toFixed(2)})</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 {/* No face */}
