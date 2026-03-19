@@ -38,8 +38,14 @@ export default function WhyWiseSection() {
         <div className="flex md:flex-row flex-col gap-3 bg-white p-4 md:p-6 rounded-[24px] md:rounded-[48px] w-full overflow-hidden reveal card-hover" style={{ transitionDelay: '150ms' }}>
           <div className="relative rounded-2xl w-full md:w-[50%] h-[250px] md:h-[420px] overflow-hidden shrink-0">
             <img src="/assets/images/home-section-2.webp" alt="W.I.S.E. Platform" className="absolute inset-0 w-full h-full object-cover" />
-            <div className="absolute inset-0 flex justify-center items-center mix-blend-overlay">
-              <img src="/wise-logo.svg" alt="" className="opacity-90 mb-20 md:mb-36 w-20 md:w-24 h-auto" />
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(218,227,255,0.5)_0%,rgba(218,227,255,0.2)_32%,rgba(218,227,255,0)_68%)]" />
+            <div className="absolute inset-0 flex justify-center items-center mix-blend-soft-light">
+              <img
+                src="/assets/images/3d-icon.png"
+                alt=""
+                role="presentation"
+                className="mb-20 md:mb-36 w-24 md:w-32 h-auto opacity-60 grayscale saturate-0 contrast-90 brightness-105"
+              />
             </div>
           </div>
           <div className="flex flex-col flex-1 md:justify-between gap-4 md:gap-0 px-4 md:px-12 py-6 md:py-10">

@@ -37,8 +37,14 @@ export default function Navbar() {
       >
         <nav className="hidden lg:flex justify-between items-center py-3 pr-4 pl-6 w-full">
           <div className="flex flex-1 justify-between items-center mx-auto max-w-[1280px]">
-            <Link to="/" className="flex flex-1 items-center gap-2 hover:opacity-80 transition-opacity duration-300">
-              <img src="/wise-logo.svg" alt="W.I.S.E." className="w-auto h-4 md:h-4.5" width="202" height="32" />
+            <Link to="/" className="flex flex-1 items-center gap-2.5 hover:opacity-80 transition-opacity duration-300">
+              <img src="/assets/images/3d-icon.png" alt="" role="presentation" className="w-16 h-16 object-contain" />
+              <span
+                className="pt-0.5 font-medium text-[1.7rem] leading-none tracking-[0.1em] bg-gradient-to-r from-[#1B1B1B] via-[#3A3A3A] to-[#1B1B1B] bg-clip-text text-transparent [text-shadow:0_0_1px_rgba(20,20,20,0.08)]"
+                style={{ fontFamily: 'Inter, "SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}
+              >
+                W.I.S.E.
+              </span>
             </Link>
             <div className="hidden lg:flex flex-2 justify-center items-center gap-4">
               {navLinks.map((item) => (
@@ -94,8 +100,14 @@ export default function Navbar() {
         {/* Mobile nav */}
         <div className="lg:hidden flex flex-col max-h-[calc(100vh-2rem)] overflow-hidden">
           <div className="flex justify-between items-center px-4.5 py-2.5">
-            <Link to="/" className="relative flex items-center gap-2">
-              <img src="/wise-logo.svg" alt="W.I.S.E." className="w-auto h-4" />
+            <Link to="/" className="relative flex items-center gap-2.5">
+              <img src="/assets/images/3d-icon.png" alt="" role="presentation" className="w-[60px] h-[60px] object-contain" />
+              <span
+                className="pt-0.5 font-medium text-[1.35rem] leading-none tracking-[0.1em] bg-gradient-to-r from-[#1B1B1B] via-[#3A3A3A] to-[#1B1B1B] bg-clip-text text-transparent [text-shadow:0_0_1px_rgba(20,20,20,0.08)]"
+                style={{ fontFamily: 'Inter, "SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}
+              >
+                W.I.S.E.
+              </span>
             </Link>
             <button
               className="flex flex-col justify-center items-center space-y-1 focus:outline-none w-8 h-8"

@@ -3,7 +3,6 @@ import WhyWiseSection from '@/views/sections/WhyWiseSection';
 import StackLayersSection from '@/views/sections/StackLayersSection';
 import DemoSection from '@/views/sections/DemoSection';
 import SecuritySection from '@/views/sections/SecuritySection';
-import PricingSection from '@/views/sections/PricingSection';
 import TestimonialSection from '@/views/sections/TestimonialSection';
 import BlogSection from '@/views/sections/BlogSection';
 import FinalCTASection from '@/views/sections/FinalCTASection';
@@ -16,7 +15,6 @@ export default function HomePage() {
       <StackLayersSection />
       <DemoSection />
       <SecuritySection />
-      <PricingSection />
       <TestimonialSection />
       <BlogSection />
       <FinalCTASection />

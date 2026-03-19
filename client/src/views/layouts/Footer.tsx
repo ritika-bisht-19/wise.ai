@@ -14,15 +14,6 @@ export default function Footer() {
               </Link>
               <p className="font-matter font-medium text-[#666] text-[14px] leading-[12px]">Your interview success starts here</p>
             </div>
-            {/* Security Badges */}
-            <div className="flex gap-[12px]">
-              <div className="flex justify-center items-center bg-[#fafafa] rounded-[16px] w-[64px] h-[64px] overflow-hidden hover:bg-[#EEF2FF] transition-colors duration-300">
-                <img src="/assets/images/sec-iso.png" alt="ISO Certified" className="w-[40px] h-[40px] object-contain" />
-              </div>
-              <div className="flex justify-center items-center bg-[#fafafa] rounded-[16px] w-[64px] h-[64px] overflow-hidden hover:bg-[#EEF2FF] transition-colors duration-300">
-                <img src="/assets/images/sec-soc2.png" alt="SOC 2 Type II" className="w-[40px] h-[40px] object-contain" />
-              </div>
-            </div>
           </div>
           {/* Link Columns */}
           <div className="justify-center gap-12 md:gap-8 lg:gap-16 grid grid-cols-2 md:grid-cols-4 w-full">

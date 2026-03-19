@@ -8,12 +8,20 @@ export default function HeroSection() {
       <div className="flex flex-1 justify-center items-center mx-auto pb-[12vh] w-[85%] md:w-9/12 max-w-[1280px] overflow-visible">
         <div className="relative flex flex-col items-center">
           <img src="/assets/images/hero-gradient.svg" alt="" className="top-[-80%] md:top-[-165%] left-1/2 absolute w-[160%] md:w-[220%] max-w-none h-auto scale-x-200 scale-y-170 -translate-x-1/2 pointer-events-none" />
-          <div className="top-1/2 left-1/2 absolute opacity-30 md:opacity-40 blur-[80px] md:blur-[100px] w-[300px] md:w-[600px] h-[200px] md:h-[400px] -translate-x-1/2 -translate-y-1/2 pointer-events-none" style={{ background: 'radial-gradient(ellipse, #A5BBFC 0%, #D5E2FF 40%, transparent 70%)' }} aria-hidden="true" />
+          <div className="top-1/2 left-1/2 absolute opacity-20 md:opacity-28 blur-[80px] md:blur-[100px] w-[300px] md:w-[600px] h-[200px] md:h-[400px] -translate-x-1/2 -translate-y-1/2 pointer-events-none" style={{ background: 'radial-gradient(ellipse, #A5BBFC 0%, #D5E2FF 40%, transparent 70%)' }} aria-hidden="true" />
+          <div
+            aria-hidden="true"
+            className="absolute left-1/2 top-[3%] md:top-[-3%] z-0 -translate-x-1/2 -translate-y-1/2 select-none whitespace-nowrap font-matter font-bold uppercase tracking-[0.14em] text-white opacity-[0.12] md:opacity-[0.16] text-[120px] md:text-[260px] leading-none"
+          >
+            W.I.S.E
+          </div>
           <div className="z-10 relative flex flex-col items-center gap-5 md:gap-10">
-            <img src="/assets/images/motif.svg" alt="" role="presentation" className="w-auto h-10 object-cover animate-float" />
-            <div className="relative bg-white/50 shadow-[0px_0px_60px_0px_rgba(85,106,220,0.12)] backdrop-blur-lg px-5 py-2.5 border border-sr-indigo-200/60 rounded-full overflow-hidden animate-fade-in-up delay-100">
-              <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/60 to-transparent -translate-x-full animate-[shimmer_3s_ease-in-out_infinite_1.5s] pointer-events-none" aria-hidden="true" />
-              <p className="relative font-matter font-semibold text-sr-indigo-800 text-sm text-center leading-normal tracking-wide">Your AI Interview Coach</p>
+            <div className="mt-16 md:mt-24 flex flex-col items-center gap-4 md:gap-5">
+              <img src="/assets/images/motif.svg" alt="" role="presentation" className="w-auto h-10 object-cover animate-float" />
+              <div className="relative bg-white/50 shadow-[0px_0px_60px_0px_rgba(85,106,220,0.12)] backdrop-blur-lg px-5 py-2.5 border border-sr-indigo-200/60 rounded-full overflow-hidden animate-fade-in-up delay-100">
+                <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/60 to-transparent -translate-x-full animate-[shimmer_3s_ease-in-out_infinite_1.5s] pointer-events-none" aria-hidden="true" />
+                <p className="relative font-matter font-semibold text-sr-indigo-800 text-sm text-center leading-normal tracking-wide">Your AI Interview Coach</p>
+              </div>
             </div>
             <div className="flex flex-col items-center gap-2.5 md:gap-3 animate-fade-in-up delay-200">
               <h1 className="max-w-4xl font-season-mix text-[48px] text-tx md:text-[72px] text-center leading-[1.05] tracking-tight">Ace Every Interview with AI</h1>

@@ -1,4 +1,4 @@
-import type { WhyFeature, Layer, DemoTab, DemoContent, SecurityBadge, HomeBlogPost } from './types';
+import type { WhyFeature, Layer, DemoTab, DemoContent, SecurityBadge, HomeBlogPost, HomeValueCard } from './types';
 
 export const partnerLogos = Array.from({ length: 15 }, (_, i) =>
   `/assets/images/partner-logo-${String(i + 1).padStart(2, '0')}.svg`
@@ -8,6 +8,25 @@ export const whyWiseFeatures: WhyFeature[] = [
   { title: 'Realistic Mock Interviews', description: 'Practice with AI interviewers who adapt to your role, industry, and experience level' },
   { title: 'Real-Time Stress Analytics', description: 'Track your vocal patterns, facial cues, and physiological signals to understand and manage interview anxiety' },
   { title: 'Personalised Coaching', description: 'Receive actionable feedback and tailored improvement plans after every session' },
+];
+
+export const interviewSupportCards: HomeValueCard[] = [
+  {
+    title: 'Answer Clearly Under Pressure',
+    description: 'Get calm, concise prompts that help you respond with structure and confidence even in high-pressure moments.',
+  },
+  {
+    title: 'Get Better After Every Interview',
+    description: 'Review what worked, what did not, and exactly what to improve before your next round.',
+  },
+  {
+    title: 'Works on Any Platform',
+    description: 'Use it smoothly across common interview tools and devices without breaking your flow.',
+  },
+  {
+    title: 'Answers That Sound Like You',
+    description: 'Suggestions adapt to your resume, role, and speaking style so responses stay natural and personal.',
+  },
 ];
 
 export const layers: Layer[] = [

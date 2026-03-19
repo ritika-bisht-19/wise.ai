@@ -58,6 +58,11 @@ export interface HomeBlogPost {
   href: string;
 }
 
+export interface HomeValueCard {
+  title: string;
+  description: string;
+}
+
 export interface BlogPagePost {
   tag: string;
   title: string;
