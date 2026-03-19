@@ -371,6 +371,26 @@ export default function InterviewChat({ resumeText, onEnd }) {
                 ))}
               </div>
 
+              <div className="mb-4 rounded-xl border border-white/55 bg-white/48 p-3.5">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-[10px] uppercase tracking-[0.08em] text-slate-600">Interviewer Voice</span>
+                  <select
+                    value={voiceKey}
+                    onChange={(e) => setVoiceKey(e.target.value)}
+                    className="rounded-lg border border-slate-200/80 bg-white/80 px-2.5 py-1.5 text-[12px] text-slate-800 outline-none"
+                  >
+                    {VOICE_OPTIONS.map((voice) => (
+                      <option key={voice.key} value={voice.key}>
+                        {voice.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <p className="mt-2 text-[11px] text-slate-700">
+                  Your selection will be used for the very first AI question.
+                </p>
+              </div>
+
               <button
                 onClick={() => setJoined(true)}
                 className="w-full py-3.5 rounded-xl text-sm md:text-base font-semibold text-white bg-gradient-to-r from-[#3f56c5] via-[#5c74e8] to-[#7d92f3] hover:from-[#364bb0] hover:via-[#5068dc] hover:to-[#7085e8] shadow-[0_12px_30px_rgba(63,86,197,0.35)] transition-all flex items-center justify-center gap-2"
