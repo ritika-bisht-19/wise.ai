@@ -2,6 +2,13 @@ import { useState, useEffect, useRef } from 'react';
 import { Mic, Square, Clock, Video, CheckCircle, Bot, User } from 'lucide-react';
 import CameraPanel from './CameraPanel';
 
+const VOICE_OPTIONS = [
+  { key: 'adam', label: 'Adam' },
+  { key: 'rachel', label: 'Rachel' },
+  { key: 'bella', label: 'Bella' },
+  { key: 'antoni', label: 'Antoni' },
+];
+
 export default function InterviewChat({ resumeText, onEnd }) {
   const [joined, setJoined] = useState(false);
   const [messages, setMessages] = useState([]);
@@ -10,6 +17,7 @@ export default function InterviewChat({ resumeText, onEnd }) {
   const [timeLeft, setTimeLeft] = useState(600);
   const [processing, setProcessing] = useState(false);
   const [stress, setStress] = useState(null);
+  const [voiceKey, setVoiceKey] = useState('adam');
 
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
@@ -162,7 +170,7 @@ export default function InterviewChat({ resumeText, onEnd }) {
       const res = await fetch('/api/speak', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: text.slice(0, 500) })
+        body: JSON.stringify({ text: text.slice(0, 500), voiceKey })
       });
       if (!res.ok) throw new Error('TTS failed');
       const blob = await res.blob();
@@ -244,6 +252,7 @@ export default function InterviewChat({ resumeText, onEnd }) {
 
   const formatTime = s => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
   const timeWarning = timeLeft < 120;
+  const activeVoiceLabel = VOICE_OPTIONS.find(v => v.key === voiceKey)?.label || 'Adam';
 
   // ═══════════════════════════════════════════════════════
   // JOIN SCREEN
@@ -458,6 +467,22 @@ export default function InterviewChat({ resumeText, onEnd }) {
 
         {/* Mic controls */}
         <div className="px-5 py-4 border-t border-white/[0.06] shrink-0">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <span className="text-[10px] uppercase tracking-[0.08em] text-slate-400">Interviewer Voice</span>
+            <select
+              value={voiceKey}
+              onChange={(e) => setVoiceKey(e.target.value)}
+              disabled={processing || isSpeaking}
+              className="rounded-lg border border-white/10 bg-white/[0.05] px-2.5 py-1.5 text-[11px] text-slate-200 outline-none disabled:opacity-50"
+            >
+              {VOICE_OPTIONS.map((voice) => (
+                <option key={voice.key} value={voice.key}>
+                  {voice.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
           <div
             className={`transition-all duration-300 overflow-hidden ${isSpeaking ? 'max-h-20 opacity-100 mb-4' : 'max-h-0 opacity-0 mb-0'}`}
             aria-hidden={!isSpeaking}
@@ -465,7 +490,7 @@ export default function InterviewChat({ resumeText, onEnd }) {
             <div className="rounded-xl border border-white/[0.08] bg-white/[0.02] px-3 py-2">
               <div className="flex items-center justify-between mb-1.5">
                 <span className="text-[10px] uppercase tracking-[0.08em] text-slate-400">AI Voice</span>
-                <span className="text-[10px] text-slate-500">SiriWave iOS9</span>
+                <span className="text-[10px] text-slate-500">{activeVoiceLabel} • SiriWave iOS9</span>
               </div>
                 <div ref={waveContainerRef} className="w-full h-20" />
             </div>

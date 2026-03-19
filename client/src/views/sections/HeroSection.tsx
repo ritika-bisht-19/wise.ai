@@ -24,7 +24,7 @@ export default function HeroSection() {
               </div>
             </div>
             <div className="flex flex-col items-center gap-2.5 md:gap-3 animate-fade-in-up delay-200">
-              <h1 className="max-w-4xl font-season-mix text-[48px] text-tx md:text-[72px] text-center leading-[1.05] tracking-tight">Ace Every Interview with AI</h1>
+              <h1 className="max-w-4xl font-season-mix font-bold text-[48px] text-tx md:text-[72px] text-center leading-[1.05] tracking-tight">Ace Every Interview with AI</h1>
               <p className="max-w-[800px] font-matter text-tx-secondary md:text-[22px] text-lg text-center leading-[1.6]">AI-powered mock interviews, real-time stress analysis, and personalised coaching<br className="hidden md:block" />to help you land your dream job.</p>
             </div>
             <div className="animate-fade-in-up delay-400">

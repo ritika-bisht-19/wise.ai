@@ -3,11 +3,19 @@ import axios from 'axios';
 
 const router = Router();
 
+const VOICE_MAP = {
+    adam: { id: 'pNInz6obpgDQGcFmaJgB', label: 'Adam' },
+    rachel: { id: '21m00Tcm4TlvDq8ikWAM', label: 'Rachel' },
+    bella: { id: 'EXAVITQu4vr4xnSDxMaL', label: 'Bella' },
+    antoni: { id: 'ErXwobaYiN019PkySvjV', label: 'Antoni' },
+};
+
 router.post('/speak', async (req, res) => {
-    const { text } = req.body;
+    const { text, voiceKey = 'adam' } = req.body;
     if (!text) return res.status(400).json({ error: 'No text provided' });
 
-    const VOICE_ID = 'pNInz6obpgDQGcFmaJgB'; // Adam
+    const selectedVoice = VOICE_MAP[voiceKey] ?? VOICE_MAP.adam;
+    const VOICE_ID = selectedVoice.id;
 
     try {
         const response = await axios.post(
@@ -30,7 +38,7 @@ router.post('/speak', async (req, res) => {
         res.setHeader('Cache-Control', 'no-cache');
         res.send(Buffer.from(response.data));
     } catch (err) {
-        console.error('TTS error:', err.response?.status, err.message);
+        console.error('TTS error:', selectedVoice.label, err.response?.status, err.message);
         res.status(500).json({ error: 'TTS generation failed' });
     }
 });

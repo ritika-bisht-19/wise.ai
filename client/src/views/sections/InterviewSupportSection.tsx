@@ -1,173 +1,150 @@
-import { ArrowUp, Briefcase, Calendar, Code2, Flame, MessageSquare, Mic, Sparkles, User, Video } from 'lucide-react';
+import { Check, Sparkles } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { useScrollReveal } from '@/controllers/useScrollReveal';
 
 export default function InterviewSupportSection() {
   const sectionRef = useScrollReveal();
 
   return (
-    <section ref={sectionRef} className="mx-auto w-[96%] max-w-[2048px]">
-      <div className="reveal" style={{ fontFamily: 'Inter, sans-serif' }}>
-        <div className="grid grid-cols-1 gap-5 md:grid-cols-5 md:gap-6">
-          <div className="flex min-h-[420px] flex-col overflow-hidden rounded-[34px] border border-[#E7E8EB] bg-[#F3F4F6] px-5 pt-5 pb-4 md:col-span-3 md:min-h-[460px] md:px-9 md:pt-8 md:pb-6">
-            <h3 className="mb-2 font-[Inter] text-[20px] leading-[26px] font-semibold text-[#1C1D20] sm:text-[24px] sm:leading-[30px]">
-              Answer Clearly Under Pressure
-            </h3>
-            <p className="mb-4 font-[Inter] text-[14px] leading-[20px] font-medium text-[#6B7280]">
-              When a question catches you off guard Interview Copilot listens understands context and delivers a structured answer within seconds.
-            </p>
+    <section ref={sectionRef} className="relative w-full overflow-x-clip py-8 md:py-10">
+      <div
+        className="right-0 left-0 top-1/2 absolute -translate-y-1/2 blur-[86px] h-3/5 overflow-hidden pointer-events-none opacity-72"
+        style={{ transform: 'scaleX(2.4) scaleY(1.3)', background: 'linear-gradient(180deg, #f8ceb0 0%, #f6bc95 30%, #f2aa78 62%, #ea965b 100%)' }}
+      />
+      <div
+        className="absolute inset-0 pointer-events-none opacity-14"
+        style={{
+          backgroundImage:
+            'url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%27200%27 height=%27200%27 viewBox=%270 0 200 200%27%3E%3Cfilter id=%27n%27%3E%3CfeTurbulence type=%27fractalNoise%27 baseFrequency=%270.85%27 numOctaves=%272%27 stitchTiles=%27stitch%27/%3E%3C/filter%3E%3Crect width=%27200%27 height=%27200%27 filter=%27url(%23n)%27 opacity=%270.9%27/%3E%3C/svg%3E")',
+          backgroundSize: '220px 220px',
+          mixBlendMode: 'soft-light',
+        }}
+      />
+      {/* Soft abstract blur blob - left side */}
+      <div
+        className="absolute inset-0 pointer-events-none opacity-12"
+        style={{
+          background:
+            'radial-gradient(ellipse 800px 600px at -15% 35%, rgba(248, 206, 176, 0.4) 0%, transparent 70%)',
+          filter: 'blur(120px)',
+        }}
+      />
+      {/* Soft abstract blur blob - right side */}
+      <div
+        className="absolute inset-0 pointer-events-none opacity-14"
+        style={{
+          background:
+            'radial-gradient(ellipse 700px 550px at 110% 45%, rgba(232, 150, 91, 0.3) 0%, transparent 68%)',
+          filter: 'blur(140px)',
+        }}
+      />
+      {/* Ambient lighting glow - center-left */}
+      <div
+        className="absolute inset-0 pointer-events-none opacity-8"
+        style={{
+          background:
+            'radial-gradient(circle 900px at 5% 50%, rgba(107, 91, 255, 0.08) 0%, transparent 65%)',
+          filter: 'blur(80px)',
+        }}
+      />
+      {/* Ambient lighting glow - center-right */}
+      <div
+        className="absolute inset-0 pointer-events-none opacity-7"
+        style={{
+          background:
+            'radial-gradient(circle 850px at 95% 40%, rgba(99, 130, 255, 0.06) 0%, transparent 70%)',
+          filter: 'blur(100px)',
+        }}
+      />
+      {/* Soft warm glow - bottom center */}
+      <div
+        className="absolute inset-0 pointer-events-none opacity-10"
+        style={{
+          background:
+            'radial-gradient(ellipse 600px 400px at 50% 95%, rgba(246, 188, 149, 0.15) 0%, transparent 60%)',
+          filter: 'blur(90px)',
+        }}
+      />
+      <div
+        className="absolute inset-0 pointer-events-none opacity-14"
+        style={{
+          backgroundImage:
+            'url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%27200%27 height=%27200%27 viewBox=%270 0 200 200%27%3E%3Cfilter id=%27n%27%3E%3CfeTurbulence type=%27fractalNoise%27 baseFrequency=%270.85%27 numOctaves=%272%27 stitchTiles=%27stitch%27/%3E%3C/filter%3E%3Crect width=%27200%27 height=%27200%27 filter=%27url(%23n)%27 opacity=%270.9%27/%3E%3C/svg%3E")',
+          backgroundSize: '220px 220px',
+          mixBlendMode: 'soft-light',
+        }}
+      />
+      <div className="reveal relative mx-auto w-[92%] max-w-[1520px] p-5 md:p-8">
+        {/* Section Heading */}
+        <h2 className="font-season-mix font-bold w-full px-3 md:px-0 text-3xl md:text-[36px] text-[#1F2331] leading-[135%] text-center mb-12 md:mb-16">
+          Three Steps to Interview Mastery
+        </h2>
 
-            <div className="mt-auto flex flex-col items-center gap-9">
-              <div className="flex max-w-[360px] items-center gap-3 rounded-2xl bg-white px-3 py-2.5" style={{ boxShadow: '0 19.778px 52.741px 0 rgba(255, 72, 0, 0.20)' }}>
-                <div className="flex size-8 flex-shrink-0 items-center justify-center overflow-hidden rounded-md border border-[#e5e7eb] bg-[linear-gradient(135deg,#94a3b8,#e2e8f0)]">
-                  <User size={14} color="#ffffff" strokeWidth={2.4} />
-                </div>
-                <div className="flex flex-1 items-center gap-[3px]">
-                  {Array.from({ length: 22 }).map((_, i) => (
-                    <div key={`dot-${i}`} className="h-[3px] w-[3px] rounded-full" style={{ backgroundColor: i < 6 ? 'rgb(209, 213, 219)' : 'rgb(255, 72, 0)' }} />
-                  ))}
-                  {[8, 12, 14, 16, 18, 14, 20, 16, 20, 12].map((h, i) => (
-                    <div
-                      key={`bar-${i}`}
-                      className="w-[3px] rounded-full bg-[#FF4800]"
-                      style={{ height: `${h}px`, animation: `idleBarBounce 2.5s ease-in-out ${i * 0.2}s infinite` }}
-                    />
-                  ))}
-                </div>
+        <div className="grid w-full grid-cols-1 gap-10 lg:grid-cols-[1.08fr_1fr] lg:items-start">
+          <div className="relative flex flex-col gap-5">
+            <article className="support-step-card support-step-card--green">
+              <div>
+                <h4 className="font-system text-[24px] md:text-[28px] leading-[1.2] font-bold text-[#1F2331] tracking-tight">Upload your resume or CV</h4>
+                <p className="mt-1.5 flex items-center gap-2 font-system text-[15px] md:text-[16px] font-medium text-[#75809A] leading-[1.5]">
+                  <span className="h-2.5 w-2.5 rounded-full bg-[#7DA2FF]" />
+                  We tailor questions to your real experience
+                </p>
+              </div>
+            </article>
+
+            <article className="support-step-card support-step-card--blue relative">
+              <div>
+                <h4 className="font-system text-[24px] md:text-[28px] leading-[1.2] font-bold text-[#1F2331] tracking-tight">Start your AI mock interview session</h4>
+                <p className="mt-1.5 flex items-center gap-2 font-system text-[15px] md:text-[16px] font-medium text-[#75809A] leading-[1.5]">
+                  <span className="h-2.5 w-2.5 rounded-full bg-[#8C7EFF]" />
+                  Practice role-specific, realistic interview rounds
+                </p>
               </div>
 
-              <div className="flex w-full items-center justify-center gap-3 lg:gap-4">
-                <div className="flex items-center gap-2 whitespace-nowrap rounded-full border border-[#D1D5DB] bg-[#BFC1C5] px-3 py-2 lg:px-5 lg:py-2.5">
-                  <span className="flex h-7 w-7 items-center justify-center rounded-md bg-[#F7CAC0]">
-                    <MessageSquare size={13} color="#FFFFFF" strokeWidth={2.2} />
-                  </span>
-                  <span className="font-[Inter] text-[14px] font-semibold text-[#ECECEC]">CoPilot Answer 1</span>
-                </div>
-                <div className="flex items-center gap-2 whitespace-nowrap rounded-full border border-[#5a5a5a] bg-[#161B26] px-5 py-3 shadow-[0_8px_18px_rgba(0,0,0,0.22)]">
-                  <span className="flex h-8 w-8 items-center justify-center rounded-md bg-[#FF4800]">
-                    <MessageSquare size={14} color="#FFFFFF" strokeWidth={2.2} />
-                  </span>
-                  <span className="font-[Inter] text-[16px] font-bold text-white">Best Answer</span>
-                </div>
-                <div className="flex items-center gap-2 whitespace-nowrap rounded-full border border-[#D1D5DB] bg-[#BFC1C5] px-3 py-2 lg:px-5 lg:py-2.5">
-                  <span className="flex h-7 w-7 items-center justify-center rounded-md bg-[#F7CAC0]">
-                    <MessageSquare size={13} color="#FFFFFF" strokeWidth={2.2} />
-                  </span>
-                  <span className="font-[Inter] text-[14px] font-semibold text-[#ECECEC]">CoPilot Answer 3</span>
-                </div>
+            </article>
+
+            <article className="support-step-card support-step-card--neutral">
+              <div>
+                <h4 className="font-system text-[24px] md:text-[28px] leading-[1.2] font-bold text-[#1F2331] tracking-tight">Get detailed analysis and proper tips</h4>
+                <p className="mt-1.5 flex items-center gap-2 font-system text-[15px] md:text-[16px] font-medium text-[#7E889F] leading-[1.5]">
+                  <span className="h-2.5 w-2.5 rounded-full bg-[#9EA8BE]" />
+                  Receive 3 strengths + 3 improvement tips after each round
+                </p>
               </div>
-            </div>
+            </article>
           </div>
 
-          <div className="relative flex min-h-[420px] flex-col overflow-hidden rounded-[34px] border border-[#E7E8EB] bg-[#F3F4F6] p-5 md:col-span-2 md:min-h-[460px] md:p-8">
-            <h3 className="mb-2 font-[Inter] text-[20px] leading-[26px] font-semibold text-[#1C1D20] sm:text-[24px] sm:leading-[30px]">
-              Get Better After Every Interview
-            </h3>
-            <p className="mb-4 font-[Inter] text-[14px] leading-[20px] font-medium text-[#6B7280]">
-              After each interview you see exactly what was asked how you responded and what to improve before the next round.
+          <div className="px-1 md:px-4 lg:px-8 lg:pt-2">
+            <div className="inline-flex rounded-full border border-[#2A2F42]/28 bg-white/62 px-5 py-2.5 font-system text-[13px] md:text-[15px] font-semibold text-[#313B52] shadow-[0_4px_14px_rgba(36,50,88,0.08)] tracking-tight">
+              Personalised to you and your job
+            </div>
+
+            <p className="mt-5 max-w-[680px] font-system text-[18px] md:text-[21px] leading-[1.6] font-regular text-[#455572]">
+              Upload your resume or CV, start your AI mock interview session, and get a detailed report with practical guidance. Every session gives you clear, structured coaching you can apply in your next interview.
             </p>
 
-            <div className="relative mt-auto max-w-[420px]">
-              <div className="absolute right-0 bottom-[20%] z-10 flex flex-col items-start gap-2 md:right-[-7%]">
-                {[
-                  ['#FF9D80', 'AI improvements'],
-                  ['#7C3AED', 'Speech patterns'],
-                  ['#2563EB', 'Speech Clarity'],
-                  ['#16A34A', 'Engagement'],
-                ].map(([color, label]) => (
-                  <span
-                    key={label}
-                    className="inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-[14px] font-semibold text-white shadow-md"
-                    style={{
-                      backgroundColor: color,
-                    }}
-                  >
-                    <span className="flex h-4 w-4 items-center justify-center">
-                      {label === 'AI improvements' && <Sparkles size={14} color="#FFFFFF" strokeWidth={2.4} />}
-                      {label === 'Speech patterns' && <MessageSquare size={14} color="#FFFFFF" strokeWidth={2.4} />}
-                      {label === 'Speech Clarity' && <Mic size={14} color="#FFFFFF" strokeWidth={2.4} />}
-                      {label === 'Engagement' && <Flame size={14} color="#FFFFFF" strokeWidth={2.4} />}
-                    </span>
-                    {label}
-                  </span>
-                ))}
-              </div>
-
-              <div className="absolute bottom-0 left-0 w-[62%] max-w-[320px] rounded-3xl bg-white p-4 shadow-[0_20px_50px_rgba(0,0,0,0.08)]">
-                <div className="space-y-3">
-                  <div className="h-4 w-20 rounded bg-[#eceef1]" />
-                  <div className="h-4 w-16 rounded bg-[#eceef1]" />
-                  <div className="h-4 w-24 rounded bg-[#eceef1]" />
-                </div>
-                <div className="mt-2 text-center">
-                  <p className="font-[Inter] text-[68px] font-semibold leading-none text-[#FF4800]">98</p>
-                  <p className="font-[Inter] text-[18px] font-semibold text-[#374151]">Total score</p>
-                </div>
-                <div className="mt-3 space-y-3">
-                  <div className="h-4 w-full rounded bg-[#eceef1]" />
-                  <div className="h-4 w-full rounded bg-[#eceef1]" />
-                  <div className="h-4 w-full rounded bg-[#eceef1]" />
-                </div>
-              </div>
+            <div className="mt-9 flex flex-col items-start gap-5 font-system text-[16px] md:text-[18px] font-semibold text-[#263454]">
+              <span className="inline-flex items-center gap-3">
+              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white/90 shadow-[0_6px_14px_rgba(63,84,166,0.16)] flex-shrink-0"><Check size={17} color="#2D6AEF" strokeWidth={2.6} /></span>
+                <span className="font-system text-[15px] md:text-[16px] font-medium">3 strengths after each round</span>
+              </span>
+              <span className="inline-flex items-center gap-3">
+              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white/90 shadow-[0_6px_14px_rgba(63,84,166,0.16)] flex-shrink-0"><Check size={17} color="#2D6AEF" strokeWidth={2.6} /></span>
+                <span className="font-system text-[15px] md:text-[16px] font-medium">3 proper improvement tips</span>
+              </span>
+              <span className="inline-flex items-center gap-3">
+              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white/90 shadow-[0_6px_14px_rgba(63,84,166,0.16)] flex-shrink-0"><Check size={17} color="#2D6AEF" strokeWidth={2.6} /></span>
+                <span className="font-system text-[15px] md:text-[16px] font-medium">Action plan for your next interview</span>
+              </span>
             </div>
-          </div>
 
-          <div className="relative flex min-h-[300px] flex-col overflow-hidden rounded-[34px] border border-[#E7E8EB] bg-[#F3F4F6] p-5 md:col-span-2 md:min-h-[300px] md:p-8">
-            <h3 className="mb-2 font-[Inter] text-[20px] leading-[26px] font-semibold text-[#1C1D20] sm:text-[24px] sm:leading-[30px]">
-              Works on Any Platform
-            </h3>
-            <p className="mb-4 font-[Inter] text-[14px] leading-[20px] font-medium text-[#6B7280]">
-              No matter where your interview takes place Interview Copilot works in real time across all major interview platforms.
-            </p>
-
-            <div className="mt-auto flex items-center justify-center pb-1">
-              <div className="relative h-[150px] w-[150px] rounded-full border-2 border-dashed border-[#d9dce2]">
-                <div className="absolute left-1/2 top-1/2 flex h-16 w-16 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-[#FF4800] text-white shadow-md">
-                  <Sparkles size={24} color="#FFFFFF" strokeWidth={2.2} />
-                </div>
-                <div className="absolute left-[12%] top-[20%] flex h-9 w-9 items-center justify-center rounded-full bg-white shadow-sm"><Briefcase size={16} color="#6b7280" /></div>
-                <div className="absolute right-[10%] top-[16%] flex h-9 w-9 items-center justify-center rounded-full bg-white shadow-sm"><Video size={16} color="#3b82f6" /></div>
-                <div className="absolute right-[10%] bottom-[22%] flex h-9 w-9 items-center justify-center rounded-full bg-white shadow-sm"><Code2 size={16} color="#ef4444" /></div>
-                <div className="absolute left-[16%] bottom-[16%] flex h-9 w-9 items-center justify-center rounded-full bg-white shadow-sm"><Calendar size={16} color="#8b5cf6" /></div>
-              </div>
-            </div>
-          </div>
-
-          <div className="relative flex min-h-[300px] flex-col overflow-hidden rounded-[34px] border border-[#E7E8EB] bg-[#F3F4F6] p-5 md:col-span-3 md:min-h-[300px] md:p-8">
-            <h3 className="mb-2 font-[Inter] text-[20px] leading-[26px] font-semibold text-[#1C1D20] sm:text-[24px] sm:leading-[30px]">
-              Answers That Sound Like You
-            </h3>
-            <p className="mb-4 font-[Inter] text-[14px] leading-[20px] font-medium text-[#6B7280]">
-              Responses are generated from your resume and job details so you sound specific credible and senior rather than generic.
-            </p>
-
-            <div className="mt-auto flex items-center justify-center pb-1 md:justify-end md:pr-8">
-              <div className="relative w-[170px] rounded-2xl bg-white p-3 shadow-[0_12px_30px_rgba(0,0,0,0.08)]">
-                <div className="mb-2 flex items-center justify-between text-[10px] font-semibold text-[#4b5563]">
-                  <div className="flex items-center gap-1">
-                    <div className="h-4 w-4 rounded-full bg-[#94a3b8]" />
-                    <span>Your Resume</span>
-                  </div>
-                  <ArrowUp size={13} color="#16A34A" />
-                </div>
-                <div className="space-y-2">
-                  <div className="h-2 w-full rounded bg-[#eceef1]" />
-                  <div className="h-2 w-[86%] rounded bg-[#f6d4c9]" />
-                  <div className="h-2 w-[74%] rounded bg-[#eceef1]" />
-                </div>
-
-                <div className="mt-3 flex items-center gap-2 rounded-full bg-[#111827] px-3 py-2 text-white">
-                  <span className="flex h-5 w-5 items-center justify-center rounded bg-[#FF4800]">
-                    <MessageSquare size={11} color="#fff" />
-                  </span>
-                  <span className="text-[11px] font-semibold">CoPilot</span>
-                  <div className="ml-auto flex items-center gap-[2px]">
-                    {[6, 10, 14, 10, 14, 9].map((h, i) => (
-                      <div key={i} className="w-[2.5px] rounded-full bg-[#FF4800]" style={{ height: h }} />
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
+            <Link
+              to="/interview"
+              className="mt-10 inline-flex items-center gap-2.5 rounded-full bg-[#1F2331] px-7 py-3 font-system text-[16px] md:text-[18px] font-semibold text-white shadow-[0_12px_28px_rgba(17,24,39,0.22)] transition-transform duration-300 hover:scale-[1.03]"
+            >
+              Start interview today
+              <Sparkles size={18} color="#FFC857" strokeWidth={2.2} />
+            </Link>
           </div>
         </div>
       </div>

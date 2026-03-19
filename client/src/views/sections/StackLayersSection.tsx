@@ -12,7 +12,7 @@ export default function StackLayersSection() {
         <div className="flex flex-col items-center gap-4 reveal">
           <p className="font-matter font-medium text-tx-tertiary text-xs text-center uppercase tracking-[2px]">For Students | Job Seekers | Career Changers</p>
           <div className="flex flex-col items-center text-center gap-6 w-full">
-            <h2 className="font-season-mix md:font-normal font-normal w-full px-3 md:px-0 text-3xl md:text-[36px] text-tx leading-[135%]">Your complete interview preparation toolkit</h2>
+            <h2 className="font-season-mix font-bold w-full px-3 md:px-0 text-3xl md:text-[36px] text-tx leading-[135%]">Your complete interview preparation toolkit</h2>
           </div>
         </div>
         <div className="flex md:flex-row flex-col items-stretch w-full reveal-scale" style={{ transitionDelay: '200ms' }}>
@@ -106,7 +106,7 @@ export default function StackLayersSection() {
                 style={{ opacity: active === i ? 1 : 0, pointerEvents: active === i ? 'auto' : 'none' }}
               >
                 <div className="flex flex-col gap-3 md:gap-4">
-                  <h3 className="font-matter font-medium text-tx md:text-[26px] text-xl leading-tight tracking-[-0.26px]">{layer.title}</h3>
+                  <h3 className="font-matter font-bold text-tx md:text-[26px] text-xl leading-tight tracking-[-0.26px]">{layer.title}</h3>
                   <p className="max-w-[480px] font-matter text-tx-tertiary md:text-[18px] text-base leading-[1.55] tracking-[-0.18px]">{layer.description}</p>
                 </div>
                 <div className="flex flex-wrap gap-2 md:gap-3">

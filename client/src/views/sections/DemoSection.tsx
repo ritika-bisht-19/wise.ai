@@ -12,7 +12,7 @@ export default function DemoSection() {
       <div className="right-0 bottom-[15%] left-0 absolute blur-[80px] h-2/5 overflow-hidden pointer-events-none" style={{ transform: 'scaleX(2.5) scaleY(1.2)', background: 'linear-gradient(180deg, #C7D2FE 0%, #A5B4FC 30%, #818CF8 50%, #A5B4FC 70%, #C7D2FE 100%)' }} />
       <div className="relative flex flex-col items-center gap-8 md:gap-12 mx-auto w-[85%] md:w-9/12 max-w-[1280px]">
         <div className="flex flex-col items-center text-center gap-6 w-full reveal">
-          <h2 className="font-season-mix md:font-normal font-normal w-full px-3 md:px-0 text-3xl md:text-[36px] text-tx leading-[135%]">See W.I.S.E. in Action</h2>
+          <h2 className="font-season-mix font-bold w-full px-3 md:px-0 text-3xl md:text-[36px] text-tx leading-[135%]">See W.I.S.E. in Action</h2>
         </div>
         {/* Tabs */}
         <div className="flex flex-wrap justify-center gap-2 reveal" style={{ transitionDelay: '100ms' }}>
@@ -25,7 +25,7 @@ export default function DemoSection() {
         {/* Demo Card */}
         <div className="bg-white border border-st-secondary rounded-[32px] md:rounded-[40px] w-full h-[550px] overflow-hidden relative reveal-scale" style={{ transitionDelay: '200ms' }}>
           <div className="px-6 md:px-10 py-6 md:py-8 border-b border-[#f0f0f0] flex items-center justify-between">
-            <h3 className="font-matter font-medium text-lg md:text-[22px] text-tx">{content.title}</h3>
+            <h3 className="font-matter font-bold text-lg md:text-[22px] text-tx">{content.title}</h3>
             <span className="flex items-center gap-2 text-sm font-matter text-[#666]">
               <span className="rounded-full w-2 h-2 bg-green-500" />LIVE
             </span>

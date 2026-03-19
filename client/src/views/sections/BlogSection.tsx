@@ -10,7 +10,7 @@ export default function BlogSection() {
     <section ref={sectionRef} className="mx-auto w-[85%] md:w-9/12 max-w-[1280px]">
       <div className="flex items-end justify-between mb-10 reveal">
         <div>
-          <h2 className="text-3xl md:text-[36px] font-season-mix leading-[135%] text-tx">
+          <h2 className="text-3xl md:text-[36px] font-season-mix font-bold leading-[135%] text-tx">
             Latest Updates
           </h2>
           <p className="text-base text-[#666] font-matter mt-2">News, research, and insights from the W.I.S.E. team.</p>
@@ -49,7 +49,7 @@ export default function BlogSection() {
                 </span>
                 <span className="text-xs font-matter text-[#999]">{post.date}</span>
               </div>
-              <h3 className="font-matter font-semibold text-base text-tx leading-snug group-hover:text-[#3730A3] transition-colors">
+              <h3 className="font-matter font-bold text-base text-tx leading-snug group-hover:text-[#3730A3] transition-colors">
                 {post.title}
               </h3>
               <p className="font-matter text-sm text-[#666] leading-relaxed">{post.description}</p>

@@ -9,7 +9,7 @@ export default function SecuritySection() {
       <div className="flex flex-col items-center gap-12 md:gap-16">
         <div className="flex flex-col items-center text-center gap-4 w-full max-w-[640px] reveal">
           <p className="font-matter font-medium text-tx-tertiary text-xs text-center uppercase tracking-[2px]">Privacy & Security</p>
-          <h2 className="font-season-mix md:font-normal font-normal w-full px-3 md:px-0 text-3xl md:text-[36px] text-tx leading-[135%]">Your data stays yours. Privacy built in from day one.</h2>
+          <h2 className="font-season-mix font-bold w-full px-3 md:px-0 text-3xl md:text-[36px] text-tx leading-[135%]">Your data stays yours. Privacy built in from day one.</h2>
         </div>
         <div className="flex md:flex-row flex-col justify-center items-center gap-6 md:gap-10 mx-auto w-full">
           {securityBadges.map((badge, idx) => (

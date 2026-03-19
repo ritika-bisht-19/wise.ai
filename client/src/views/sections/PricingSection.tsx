@@ -9,7 +9,7 @@ export default function PricingSection() {
   return (
     <section ref={sectionRef} className="mx-auto w-[85%] md:w-9/12 max-w-[1280px]">
       <div className="flex flex-col items-center gap-4 mb-12 reveal">
-        <h2 className="text-3xl md:text-[40px] font-season-mix leading-[130%] text-tx text-center">
+        <h2 className="text-3xl md:text-[40px] font-season-mix font-bold leading-[130%] text-tx text-center">
           Built to fit every learner&apos;s journey
         </h2>
         <p className="text-base md:text-lg text-[#666] font-matter text-center max-w-[480px]">
@@ -45,7 +45,7 @@ export default function PricingSection() {
                 MOST POPULAR
               </span>
             )}
-            <h3 className={`font-matter font-semibold text-lg mb-1 ${plan.popular ? 'text-white' : 'text-tx'}`}>
+            <h3 className={`font-matter font-bold text-lg mb-1 ${plan.popular ? 'text-white' : 'text-tx'}`}>
               {plan.name}
             </h3>
             <div className="flex items-baseline gap-1 mb-2">

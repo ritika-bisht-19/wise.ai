@@ -33,7 +33,7 @@ export default function WhyWiseSection() {
     <section ref={sectionRef} className="mx-auto w-[85%] md:w-9/12 max-w-[1280px]">
       <div className="flex flex-col items-center gap-8 md:gap-16">
         <div className="flex flex-col items-center text-center gap-6 w-full reveal">
-          <h2 className="font-season-mix md:font-normal font-normal w-full px-3 md:px-0 text-3xl md:text-[36px] text-tx leading-[135%]">Why W.I.S.E.?</h2>
+          <h2 className="font-season-mix font-bold w-full px-3 md:px-0 text-3xl md:text-[36px] text-tx leading-[135%]">Why W.I.S.E.?</h2>
         </div>
         <div className="flex md:flex-row flex-col gap-3 bg-white p-4 md:p-6 rounded-[24px] md:rounded-[48px] w-full overflow-hidden reveal card-hover" style={{ transitionDelay: '150ms' }}>
           <div className="relative rounded-2xl w-full md:w-[50%] h-[250px] md:h-[420px] overflow-hidden shrink-0">
@@ -44,7 +44,7 @@ export default function WhyWiseSection() {
                 src="/assets/images/3d-icon.png"
                 alt=""
                 role="presentation"
-                className="mb-20 md:mb-36 w-24 md:w-32 h-auto opacity-60 grayscale saturate-0 contrast-90 brightness-105"
+                className="mb-20 md:mb-36 w-28 md:w-40 h-auto opacity-70 grayscale saturate-0 contrast-90 brightness-105"
               />
             </div>
           </div>
@@ -53,7 +53,7 @@ export default function WhyWiseSection() {
               <div key={f.title} className="flex items-start gap-4">
                 <FeatureIcon />
                 <div className="flex flex-col gap-1.5 md:gap-3">
-                  <h3 className="font-matter font-medium text-tx md:text-[22px] text-xl leading-normal tracking-[-0.22px]">{f.title}</h3>
+                  <h3 className="font-matter font-bold text-tx md:text-[22px] text-xl leading-normal tracking-[-0.22px]">{f.title}</h3>
                   <p className="font-matter text-[#999] text-base leading-normal tracking-[-0.16px]">{f.description}</p>
                 </div>
               </div>
