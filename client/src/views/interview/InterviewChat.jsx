@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Mic, Square, Clock, Video, CheckCircle, Bot, User, ArrowRight, ArrowLeft, Hand } from 'lucide-react';
-import CameraPanel from './CameraPanel';
+import CameraPanel from '../components/CameraPanel';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const VOICE_OPTIONS = [
