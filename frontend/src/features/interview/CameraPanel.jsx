@@ -128,6 +128,7 @@ export default function CameraPanel({ onStressUpdate, isCalibration = false, onI
     const lastWarningTs = useRef({ noFace: 0, multiFace: 0 });
     const lastVerifyTs = useRef(0);
     const verifyInFlight = useRef(false);
+    const palmDetectedRef = useRef(false);
     // Offscreen snapshot canvas (reused across frames)
     const snapCanvasRef = useRef(null);
 
@@ -246,25 +247,33 @@ export default function CameraPanel({ onStressUpdate, isCalibration = false, onI
                 handModel.onResults((results) => {
                    if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
                         
-                        // We check the first hand detected to ensure 5 fingers are mapped/visible
+                        // We check the first hand detected to ensure all 5 fingers are visible and open.
                         const hand = results.multiHandLandmarks[0];
-                        // Typical landmarks needed to verify full palm: wrist (0), thumb tip (4), index tip (8), middle tip (12), ring tip (16), pinky tip (20)
-                        const requiredLandmarks = [0, 4, 8, 12, 16, 20];
+                        const requiredLandmarks = [0, 4, 3, 8, 6, 12, 10, 16, 14, 20, 18];
                         let isFullPalm = true;
-                        
-                        // Increase strictness: visibility needs to be higher to ensure actual open palm
+
+                        // Ensure all required tip/joint landmarks are present.
                         for (const idx of requiredLandmarks) {
-                            if (!hand[idx] || hand[idx].visibility < 0.5) {
+                            if (!hand[idx]) {
                                 isFullPalm = false;
                                 break;
                             }
                         }
-                        
-                        // Simple gesture check: fingers should be above the wrist (y is inverted, so y should be less than wrist y)
-                        if (isFullPalm && hand[0]) {
-                             if (hand[8].y > hand[0].y || hand[12].y > hand[0].y || hand[16].y > hand[0].y) {
-                                 isFullPalm = false; // Fingers are pointing down or hand is closed
-                             }
+
+                        // Orientation-agnostic openness check:
+                        // each fingertip must be farther from wrist than its lower joint.
+                        if (isFullPalm) {
+                            const wrist = hand[0];
+                            const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+                            const fingerOpen = (tipIdx, lowerIdx) => dist(hand[tipIdx], wrist) > dist(hand[lowerIdx], wrist) * 1.05;
+
+                            const thumbOpen = fingerOpen(4, 3);
+                            const indexOpen = fingerOpen(8, 6);
+                            const middleOpen = fingerOpen(12, 10);
+                            const ringOpen = fingerOpen(16, 14);
+                            const pinkyOpen = fingerOpen(20, 18);
+
+                            isFullPalm = thumbOpen && indexOpen && middleOpen && ringOpen && pinkyOpen;
                         }
 
                         // Drawing logic on the canvas
@@ -295,18 +304,14 @@ export default function CameraPanel({ onStressUpdate, isCalibration = false, onI
 
                         if (isFullPalm) {
                            setHandsDetected(true);
-                           // When hand is detected, we fire a special fake 'palm' event on top of stress updates
-                           onStressUpdate?.({ 
-                               level: stableLevelRef.current, 
-                               score: smoothedScore.current, 
-                               label: 'Calibration Hand Tracking', 
-                               features: { ...latestFeaturesRef.current, palm_detected: true } 
-                           });
+                           palmDetectedRef.current = true;
                         } else {
                            setHandsDetected(false);
+                           palmDetectedRef.current = false;
                         }
                    } else {
                        setHandsDetected(false);
+                       palmDetectedRef.current = false;
                    }
                 });
             }
@@ -494,7 +499,18 @@ export default function CameraPanel({ onStressUpdate, isCalibration = false, onI
                     stableLevelRef.current = level;
 
                     const label = { calm: 'Calm', mild: 'Slight Stress', high: 'High Stress' }[level];
-                    const newFeatures = { eyebrow_raise: eyebrow, lip_tension: lip, head_nod_intensity: nod, symmetry_delta: symmetry, blink_rate: blinkRate, upward_gaze_rate: gazeUpRate, head_turn_rate: headTurnRate, smile_score: smile, yaw: yawDeg };
+                    const newFeatures = {
+                        eyebrow_raise: eyebrow,
+                        lip_tension: lip,
+                        head_nod_intensity: nod,
+                        symmetry_delta: symmetry,
+                        blink_rate: blinkRate,
+                        upward_gaze_rate: gazeUpRate,
+                        head_turn_rate: headTurnRate,
+                        smile_score: smile,
+                        yaw: yawDeg,
+                        palm_detected: isCalibration ? palmDetectedRef.current : undefined,
+                    };
 
                     latestFeaturesRef.current = newFeatures; // keep track globally for hand injection
 

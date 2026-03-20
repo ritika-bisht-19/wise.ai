@@ -1,10 +1,11 @@
 import type { TeamMember, ValueItem } from './types';
 
 export const team: TeamMember[] = [
-  { initials: 'RK', name: 'Rahul Kumar', role: 'CEO & Co-founder', bio: 'Ex-Google, Stanford CS. Passionate about making AI accessible to everyone.' },
-  { initials: 'AS', name: 'Ananya Singh', role: 'CTO & Co-founder', bio: 'Ex-Microsoft Research. PhD in NLP from IIT Bombay.' },
-  { initials: 'DM', name: 'David Miller', role: 'Head of Product', bio: 'Former product lead at Coursera. Building the future of edtech.' },
-  { initials: 'LP', name: 'Lisa Park', role: 'Head of AI Research', bio: 'PhD in Affective Computing from MIT. Expert in stress detection.' },
+  { initials: 'AD', name: 'Anika Dewari', role: 'Student', bio: 'Student, Graphic Era Hill University, Dehradun.' },
+  { initials: 'RB', name: 'Ritika Bisht', role: 'Student', bio: 'Student, Graphic Era Hill University, Dehradun.' },
+  { initials: 'AR', name: 'Ankush Rawat', role: 'Student', bio: 'Student, Graphic Era Hill University, Dehradun.' },
+  { initials: 'AN', name: 'Ayush Negi', role: 'Student', bio: 'Student, Graphic Era Hill University, Dehradun.' },
+  { initials: 'SM', name: 'Shalini Mehra', role: 'Student', bio: 'Student, Graphic Era Hill University, Dehradun.' },
 ];
 
 export const values: ValueItem[] = [

@@ -11,6 +11,7 @@ const VOICE_OPTIONS = [
 ];
 
 export default function InterviewChat({ resumeText, onEnd }) {
+  const PALM_HOLD_REQUIRED_MS = 5000;
   const [joined, setJoined] = useState(false);
   const [messages, setMessages] = useState([]);
   const [isListening, setIsListening] = useState(false);
@@ -30,6 +31,9 @@ export default function InterviewChat({ resumeText, onEnd }) {
   const [isCalibrating, setIsCalibrating] = useState(false);
   const [calibrationStep, setCalibrationStep] = useState(0); // 0 = Turn Left, 1 = Turn Right, 2 = Palm Over Face, 3 = Done
   const [currentYaw, setCurrentYaw] = useState(0);
+  const [palmHoldMs, setPalmHoldMs] = useState(0);
+  const palmHoldStartRef = useRef(null);
+  const palmStepCompletedRef = useRef(false);
 
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
@@ -311,7 +315,7 @@ export default function InterviewChat({ resumeText, onEnd }) {
           }}
         />
         <img
-          src="/assets/images/hero-gradient.svg"
+          src="/assets/images/hero/hero-gradient-bg.svg"
           alt=""
           className="absolute top-[-48%] left-1/2 w-[170%] md:w-[130%] max-w-none -translate-x-1/2 opacity-75 pointer-events-none"
         />
@@ -329,7 +333,7 @@ export default function InterviewChat({ resumeText, onEnd }) {
 
               <div className="relative">
                 <img
-                  src="/assets/images/motif.svg"
+                  src="/assets/images/hero/hero-motif.svg"
                   alt=""
                   className="w-auto h-12 md:h-14 opacity-80 mb-5"
                 />
@@ -482,21 +486,37 @@ export default function InterviewChat({ resumeText, onEnd }) {
              if (yaw < -12) {
                playSuccessHaptic();
                setTimeout(() => {
+                 palmHoldStartRef.current = null;
+                 palmStepCompletedRef.current = false;
+                 setPalmHoldMs(0);
                  setCalibrationStep(2);
                }, 1200);
                return 1.5; // Interim state for success styling
              }
              return prevStep;
           } else if (prevStep === 2) {
+             // Must hold a valid all-5-fingers-open palm continuously for 5s.
              if (palm) {
-                 // The system is now verifying all 5 fingers + wrist, so if palm comes true, we can start the timer
-                 // Wait a longer time (5s total, user holds for 5s basically)
+               if (!palmHoldStartRef.current) palmHoldStartRef.current = Date.now();
+               const heldMs = Date.now() - palmHoldStartRef.current;
+               const clampedMs = Math.min(heldMs, PALM_HOLD_REQUIRED_MS);
+               setPalmHoldMs(clampedMs);
+
+               if (heldMs >= PALM_HOLD_REQUIRED_MS && !palmStepCompletedRef.current) {
+                 palmStepCompletedRef.current = true;
                  playSuccessHaptic();
                  setTimeout(() => {
                    setCalibrationStep(3);
-                 }, 4000); // Extended from 1.2s to 4s to simulate holding the palm
-                 return 2.5; // Interim state for success styling
+                 }, 1200);
+                 return 2.5; // success state
+               }
+               return prevStep;
              }
+
+             // Any interruption resets hold progress.
+             palmHoldStartRef.current = null;
+             palmStepCompletedRef.current = false;
+             if (palmHoldMs !== 0) setPalmHoldMs(0);
              return prevStep;
           } else if (prevStep === 3) {
              setTimeout(() => {
@@ -635,8 +655,23 @@ export default function InterviewChat({ resumeText, onEnd }) {
                             {isSuccessState ? 'Got it!' : 'Show Palm'}
                         </h4>
                         <p className={`text-sm mb-6 transition-colors duration-300 ${isSuccessState ? 'text-emerald-500/80' : 'text-slate-400'}`}>
-                            {isSuccessState ? 'Hand detection confirmed.' : 'Raise your hand into frame to confirm filter block.'}
+                            {isSuccessState ? 'Hand detection confirmed.' : 'Keep all 5 fingers visible for 5 seconds.'}
                         </p>
+
+                        {!isSuccessState && (
+                          <div className="w-full max-w-[260px] mb-4">
+                            <div className="flex items-center justify-between mb-1.5 text-[11px] text-slate-300">
+                              <span>Hold Progress</span>
+                              <span>{(palmHoldMs / 1000).toFixed(1)}s / 5.0s</span>
+                            </div>
+                            <div className="h-2 rounded-full bg-white/15 overflow-hidden">
+                              <div
+                                className="h-full rounded-full bg-gradient-to-r from-emerald-400 to-teal-400 transition-all duration-150"
+                                style={{ width: `${Math.min((palmHoldMs / PALM_HOLD_REQUIRED_MS) * 100, 100)}%` }}
+                              />
+                            </div>
+                          </div>
+                        )}
 
                         <motion.div 
                             animate={isSuccessState ? { scale: [1, 1.1, 1], borderColor: 'rgba(16, 185, 129, 0.6)', backgroundColor: 'rgba(16, 185, 129, 0.3)' } : {}}

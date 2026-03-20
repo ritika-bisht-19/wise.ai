@@ -83,6 +83,115 @@ wise.ai/
 
 ## setup — run locally
 
+### preferred clone location (recommended)
+
+use a simple path with no spaces:
+
+- macOS: `~/dev/wise-ai`
+- Windows: `C:\dev\wise-ai`
+
+example clone commands:
+
+```bash
+# macOS / Linux
+mkdir -p ~/dev
+cd ~/dev
+git clone https://github.com/ritika-bisht-19/wise.ai.git
+cd wise.ai
+```
+
+```powershell
+# Windows PowerShell
+mkdir C:\dev -Force
+cd C:\dev
+git clone https://github.com/ritika-bisht-19/wise.ai.git
+cd .\wise.ai
+```
+
+### quick start (one command)
+
+from repo root:
+
+```bash
+# macOS
+./run-mac.sh
+```
+
+```bat
+:: Windows (Command Prompt)
+run-windows.bat
+```
+
+these scripts bootstrap dependencies (if missing) and start all 3 services:
+- frontend: http://localhost:5173
+- backend: http://localhost:3000
+- face api: http://localhost:8001
+
+### manual start (without `.bat` / `.sh`)
+
+run these in 3 separate terminals after cloning.
+
+#### macOS
+
+terminal 1 — frontend
+
+```bash
+cd ~/dev/wise-ai/frontend
+npm install
+npm run dev
+```
+
+terminal 2 — backend
+
+```bash
+cd ~/dev/wise-ai/backend
+npm install
+node src/app.js
+```
+
+terminal 3 — face api
+
+```bash
+cd ~/dev/wise-ai/ai-services/face_api
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+python3 main.py
+```
+
+#### windows (powershell)
+
+terminal 1 — frontend
+
+```powershell
+cd C:\dev\wise-ai\frontend
+npm install
+npm run dev
+```
+
+terminal 2 — backend
+
+```powershell
+cd C:\dev\wise-ai\backend
+npm install
+node src/app.js
+```
+
+terminal 3 — face api
+
+```powershell
+cd C:\dev\wise-ai\ai-services\face_api
+py -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+py main.py
+```
+
+app urls:
+- frontend: http://localhost:5173
+- backend: http://localhost:3000
+- face api: http://localhost:8001
+
 ### 1. frontend
 
 ```bash

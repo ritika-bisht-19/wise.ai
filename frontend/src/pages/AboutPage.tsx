@@ -60,9 +60,13 @@ export default function AboutPage() {
       {/* Team */}
       <section ref={teamRef} className="mx-auto w-[85%] md:w-9/12 max-w-[1280px]">
         <h2 className="text-3xl md:text-[36px] font-season-mix leading-[135%] text-tx text-center mb-10 reveal">Meet the Team</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+        <div className="flex flex-wrap justify-center gap-6">
           {team.map((m, idx) => (
-            <div key={m.name} className="flex flex-col items-center text-center p-6 rounded-[24px] border border-[#f0f0f0] bg-white card-hover reveal" style={{ transitionDelay: `${150 + idx * 100}ms` }}>
+            <div
+              key={m.name}
+              className="w-full max-w-[320px] sm:w-[calc(50%-0.75rem)] lg:w-[calc(33.333%-1rem)] flex flex-col items-center text-center p-6 rounded-[24px] border border-[#f0f0f0] bg-white card-hover reveal"
+              style={{ transitionDelay: `${150 + idx * 100}ms` }}
+            >
               <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#C7D2FE] to-[#A5BBFC] flex items-center justify-center text-white font-matter font-bold text-2xl mb-4">
                 {m.initials}
               </div>

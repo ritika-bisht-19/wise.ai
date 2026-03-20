@@ -26,7 +26,11 @@ async def register_face(file: UploadFile = File(...)):
     contents = await file.read()
     nparr = np.frombuffer(contents, np.uint8)
     img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-    rgb_img = img[:, :, ::-1]
+    if img is None:
+        raise HTTPException(status_code=400, detail="Invalid image file.")
+
+    # cv2 channel flip via slicing can create non-contiguous arrays that dlib rejects.
+    rgb_img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
     encodings = face_recognition.face_encodings(rgb_img)
     if not encodings:
@@ -45,7 +49,10 @@ async def verify_face(file: UploadFile = File(...)):
     contents = await file.read()
     nparr = np.frombuffer(contents, np.uint8)
     frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-    rgb_frame = frame[:, :, ::-1]
+    if frame is None:
+        raise HTTPException(status_code=400, detail="Invalid image file.")
+
+    rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
     face_locations = face_recognition.face_locations(rgb_frame)
     current_encodings = face_recognition.face_encodings(rgb_frame, face_locations)

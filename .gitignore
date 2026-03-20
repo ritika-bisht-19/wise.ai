@@ -9,6 +9,8 @@ dist-ssr/
 .vite/
 .env
 speech_api/venv/
+ai-services/face_api/.venv/
+ai-services/face_api/.venv311/
 sarvam_clone/
 sarvam_unified/
 xclone-sarvam.ai-1773058739048/

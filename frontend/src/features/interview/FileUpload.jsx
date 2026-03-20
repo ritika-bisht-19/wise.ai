@@ -81,7 +81,7 @@ export default function FileUpload({ onUpload }) {
       />
 
       <img
-        src="/assets/images/hero-gradient.svg"
+        src="/assets/images/hero/hero-gradient-bg.svg"
         alt=""
         className="absolute top-[-48%] left-1/2 w-[170%] md:w-[130%] max-w-none -translate-x-1/2 opacity-75 pointer-events-none"
       />

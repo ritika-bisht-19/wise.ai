@@ -16,7 +16,7 @@ export default function MockupSection() {
         </div>
         <div className="w-full flex items-center justify-center">
           <img
-            src="/assets/images/mock.png"
+            src="/assets/images/mockup/mockup-dashboard.png"
             alt="W.I.S.E. interface mockup"
             loading="eager"
             decoding="async"
