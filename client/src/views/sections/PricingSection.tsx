@@ -1,5 +1,5 @@
-import { usePricingToggle } from '@/controllers/usePricingToggle';
-import { useScrollReveal } from '@/controllers/useScrollReveal';
+import { usePricingToggle } from '@/viewmodels/usePricingToggle';
+import { useScrollReveal } from '@/viewmodels/useScrollReveal';
 import { plans } from '@/models/pricing.data';
 
 export default function PricingSection() {

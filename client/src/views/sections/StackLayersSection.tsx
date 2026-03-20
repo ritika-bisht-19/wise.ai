@@ -1,5 +1,5 @@
-import { useStackLayers } from '@/controllers/useStackLayers';
-import { useScrollReveal } from '@/controllers/useScrollReveal';
+import { useStackLayers } from '@/viewmodels/useStackLayers';
+import { useScrollReveal } from '@/viewmodels/useScrollReveal';
 import { layers } from '@/models/home.data';
 
 export default function StackLayersSection() {

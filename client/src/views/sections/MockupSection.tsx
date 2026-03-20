@@ -1,4 +1,4 @@
-import { useScrollReveal } from '@/controllers/useScrollReveal';
+import { useScrollReveal } from '@/viewmodels/useScrollReveal';
 
 export default function MockupSection() {
   const sectionRef = useScrollReveal();

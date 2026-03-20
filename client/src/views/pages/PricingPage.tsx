@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import PricingSection from '@/views/sections/PricingSection';
 import { faqs } from '@/models/pricing.data';
-import { useScrollReveal } from '@/controllers/useScrollReveal';
+import { useScrollReveal } from '@/viewmodels/useScrollReveal';
 
 export default function PricingPage() {
   const heroRef = useScrollReveal();

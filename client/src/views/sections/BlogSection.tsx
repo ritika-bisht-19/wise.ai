@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { homeBlogPosts } from '@/models/home.data';
 import { tagColors } from '@/models/blog.data';
-import { useScrollReveal } from '@/controllers/useScrollReveal';
+import { useScrollReveal } from '@/viewmodels/useScrollReveal';
 
 export default function BlogSection() {
   const sectionRef = useScrollReveal();

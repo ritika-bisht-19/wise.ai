@@ -1,5 +1,5 @@
 import { whyWiseFeatures } from '@/models/home.data';
-import { useScrollReveal } from '@/controllers/useScrollReveal';
+import { useScrollReveal } from '@/viewmodels/useScrollReveal';
 
 function FeatureIcon() {
   return (

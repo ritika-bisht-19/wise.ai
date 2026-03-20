@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { featureCategories } from '@/models/features.data';
-import { useScrollReveal } from '@/controllers/useScrollReveal';
+import { useScrollReveal } from '@/viewmodels/useScrollReveal';
 
 export default function FeaturesPage() {
   const heroRef = useScrollReveal();

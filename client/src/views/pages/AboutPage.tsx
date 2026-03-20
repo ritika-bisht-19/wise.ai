@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { team, values } from '@/models/about.data';
-import { useScrollReveal } from '@/controllers/useScrollReveal';
+import { useScrollReveal } from '@/viewmodels/useScrollReveal';
 
 export default function AboutPage() {
   const heroRef = useScrollReveal();

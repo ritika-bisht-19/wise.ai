@@ -1,6 +1,6 @@
 import { Check, Sparkles } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { useScrollReveal } from '@/controllers/useScrollReveal';
+import { useScrollReveal } from '@/viewmodels/useScrollReveal';
 
 export default function InterviewSupportSection() {
   const sectionRef = useScrollReveal();

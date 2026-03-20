@@ -1,15 +1,20 @@
 // InterviewPage.tsx
 // Full interview engine embedded in the W.I.S.E. marketing site.
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { ArrowLeft, Radio } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 // @ts-ignore
-import FileUpload from '@/views/interview/FileUpload';
+import Header from '../layouts/Header';
 // @ts-ignore
-import InterviewChat from '@/views/interview/InterviewChat';
+import Footer from '../layouts/Footer';
 // @ts-ignore
-import FeedbackReport from '@/views/interview/FeedbackReport';
+import FileUpload from '../components/FileUpload';
+// @ts-ignore
+import InterviewChat from '../components/InterviewChat';
+// @ts-ignore
+import FeedbackReport from '../components/FeedbackReport';
 
 type Stage = 'upload' | 'interview' | 'feedback';
 
@@ -17,6 +22,7 @@ export default function InterviewPage() {
     const [stage, setStage] = useState<Stage>('upload');
     const [resumeText, setResumeText] = useState('');
     const [feedbackData, setFeedbackData] = useState<object | null>(null);
+    const navigate = useNavigate();
 
     const handleUploadSuccess = (text: string) => {
         setResumeText(text);

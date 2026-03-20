@@ -1,5 +1,5 @@
-import { useContactForm } from '@/controllers/useContactForm';
-import { useScrollReveal } from '@/controllers/useScrollReveal';
+import { useContactForm } from '@/viewmodels/useContactForm';
+import { useScrollReveal } from '@/viewmodels/useScrollReveal';
 
 export default function ContactPage() {
   const { submitted, handleSubmit } = useContactForm();

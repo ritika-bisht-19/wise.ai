@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { useNavbar } from '@/controllers/useNavbar';
+import { useNavbar } from '@/viewmodels/useNavbar';
 import { navLinks } from '@/models/navigation.data';
 
 export default function Navbar() {

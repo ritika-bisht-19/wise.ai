@@ -1,5 +1,5 @@
 import { Outlet } from 'react-router-dom';
-import { useScrollToTop } from '@/controllers/useScrollToTop';
+import { useScrollToTop } from '@/viewmodels/useScrollToTop';
 import Navbar from './Navbar';
 import Footer from './Footer';
 

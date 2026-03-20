@@ -1,5 +1,5 @@
-import { useDemoTabs } from '@/controllers/useDemoTabs';
-import { useScrollReveal } from '@/controllers/useScrollReveal';
+import { useDemoTabs } from '@/viewmodels/useDemoTabs';
+import { useScrollReveal } from '@/viewmodels/useScrollReveal';
 import { demoTabs } from '@/models/home.data';
 
 export default function DemoSection() {

@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { useScrollReveal } from '@/controllers/useScrollReveal';
+import { useScrollReveal } from '@/viewmodels/useScrollReveal';
 
 export default function FinalCTASection() {
   const sectionRef = useScrollReveal();

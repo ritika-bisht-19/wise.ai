@@ -1,5 +1,5 @@
 import { securityBadges } from '@/models/home.data';
-import { useScrollReveal } from '@/controllers/useScrollReveal';
+import { useScrollReveal } from '@/viewmodels/useScrollReveal';
 
 export default function SecuritySection() {
   const sectionRef = useScrollReveal();

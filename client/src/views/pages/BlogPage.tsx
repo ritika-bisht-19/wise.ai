@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { blogPosts, tagColors } from '@/models/blog.data';
-import { useScrollReveal } from '@/controllers/useScrollReveal';
+import { useScrollReveal } from '@/viewmodels/useScrollReveal';
 
 export default function BlogPage() {
   const heroRef = useScrollReveal();
