@@ -95,7 +95,7 @@ function estimateYawDeg(lm) {
 }
 
 
-export default function CameraPanel({ onStressUpdate, isCalibration = false }) {
+export default function CameraPanel({ onStressUpdate, isCalibration = false, onIdentityCheck = null }) {
     const videoRef = useRef(null);
     const canvasRef = useRef(null);
     const offscreenRef = useRef(null);
@@ -126,6 +126,10 @@ export default function CameraPanel({ onStressUpdate, isCalibration = false }) {
 
     const hasStartedTracking = useRef(false);
     const lastWarningTs = useRef({ noFace: 0, multiFace: 0 });
+    const lastVerifyTs = useRef(0);
+    const verifyInFlight = useRef(false);
+    // Offscreen snapshot canvas (reused across frames)
+    const snapCanvasRef = useRef(null);
 
     const playWarningHaptic = () => {
         try {
@@ -500,6 +504,51 @@ export default function CameraPanel({ onStressUpdate, isCalibration = false }) {
                         setStress({ level, score: stableScore, label });
                         setFeatures(newFeatures);
                         onStressUpdate?.({ level, score: stableScore, label, features: newFeatures });
+                    }
+
+                    // ── Face Identity Verification (every 2s, live interview only) ──────
+                    if (
+                        !isCalibration &&
+                        onIdentityCheck &&
+                        !verifyInFlight.current &&
+                        nowForUi - lastVerifyTs.current >= 2000
+                    ) {
+                        lastVerifyTs.current = nowForUi;
+                        verifyInFlight.current = true;
+
+                        // Draw current video frame to a small offscreen canvas and export as JPEG
+                        try {
+                            if (!snapCanvasRef.current) {
+                                snapCanvasRef.current = document.createElement('canvas');
+                            }
+                            const sc = snapCanvasRef.current;
+                            sc.width = Math.round(W / 2);   // half-res is sufficient for face_recognition
+                            sc.height = Math.round(H / 2);
+                            const sctx = sc.getContext('2d');
+                            sctx.drawImage(video, 0, 0, sc.width, sc.height);
+
+                            sc.toBlob(async (blob) => {
+                                if (!blob) { verifyInFlight.current = false; return; }
+                                const fd = new FormData();
+                                fd.append('file', blob, 'frame.jpg');
+                                try {
+                                    const res = await fetch('http://localhost:8001/api/verify-face', {
+                                        method: 'POST',
+                                        body: fd,
+                                    });
+                                    if (res.ok) {
+                                        const data = await res.json();
+                                        onIdentityCheck(data); // { match, status, distance }
+                                    }
+                                } catch {
+                                    // FastAPI not running or network error — silently skip
+                                } finally {
+                                    verifyInFlight.current = false;
+                                }
+                            }, 'image/jpeg', 0.75);
+                        } catch {
+                            verifyInFlight.current = false;
+                        }
                     }
                 } catch (e) {
                     console.error("CameraPanel Loop Error:", e);

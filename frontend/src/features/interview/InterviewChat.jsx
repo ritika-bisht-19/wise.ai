@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Mic, Square, Clock, Video, CheckCircle, Bot, User, ArrowRight, ArrowLeft, Hand } from 'lucide-react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { Mic, Square, Clock, Video, CheckCircle, Bot, User, ArrowRight, ArrowLeft, Hand, ShieldAlert, ShieldCheck } from 'lucide-react';
 import CameraPanel from './CameraPanel';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -19,6 +19,12 @@ export default function InterviewChat({ resumeText, onEnd }) {
   const [processing, setProcessing] = useState(false);
   const [stress, setStress] = useState(null);
   const [voiceKey, setVoiceKey] = useState('adam');
+
+  // Identity verification state
+  const [identityStatus, setIdentityStatus] = useState(null); // null | 'match' | 'mismatch' | 'no_face'
+  const [identityFailCount, setIdentityFailCount] = useState(0);
+  const [identityBannerVisible, setIdentityBannerVisible] = useState(false);
+  const identityFailRef = useRef(0); // ref mirror so callback always sees fresh count
   
   // Calibration State
   const [isCalibrating, setIsCalibrating] = useState(false);
@@ -259,6 +265,37 @@ export default function InterviewChat({ resumeText, onEnd }) {
   const formatTime = s => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
   const timeWarning = timeLeft < 120;
   const activeVoiceLabel = VOICE_OPTIONS.find(v => v.key === voiceKey)?.label || 'Adam';
+
+  // ─────────────────────────────────────────────────────
+  // IDENTITY CHECK HANDLER
+  // ─────────────────────────────────────────────────────
+  const handleIdentityCheck = useCallback((result) => {
+    const { match, status } = result;
+
+    if (status === 'no_face_detected') {
+      setIdentityStatus('no_face');
+      return; // transient occlusion — not counted as a failure
+    }
+
+    if (match) {
+      // Cumulative total never resets — only hide banner visually on a match.
+      // This prevents gaming by briefly flashing the registered photo.
+      setIdentityStatus('match');
+      setIdentityBannerVisible(false);
+    } else {
+      setIdentityStatus('mismatch');
+      // Always increment — counter never goes back down
+      const next = identityFailRef.current + 1;
+      identityFailRef.current = next;
+      setIdentityFailCount(next);
+      setIdentityBannerVisible(true);
+
+      if (next >= 3) {
+        // 3 total mismatches accumulated → stop interview
+        setTimeout(() => onEnd(messages), 2500);
+      }
+    }
+  }, [messages, onEnd]);
 
   // ═══════════════════════════════════════════════════════
   // JOIN SCREEN
@@ -684,7 +721,7 @@ export default function InterviewChat({ resumeText, onEnd }) {
     <div className="flex h-full">
       {/* LEFT: Camera */}
       <div className="w-[340px] shrink-0 border-r border-white/[0.06] bg-[#111118]">
-        <CameraPanel onStressUpdate={setStress} />
+        <CameraPanel onStressUpdate={setStress} onIdentityCheck={handleIdentityCheck} />
       </div>
 
       {/* RIGHT: Chat */}
@@ -695,6 +732,19 @@ export default function InterviewChat({ resumeText, onEnd }) {
             <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
             <span className="text-sm font-medium text-slate-200">Technical Interview</span>
           </div>
+
+          {/* Identity badge */}
+          <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all duration-300 ${
+            identityStatus === 'match' ? 'bg-emerald-500/10 text-emerald-400' :
+            identityStatus === 'mismatch' ? 'bg-red-500/10 text-red-400' :
+            'bg-white/[0.03] text-slate-500'
+          }`}>
+            {identityStatus === 'match' ? <ShieldCheck size={13} /> : <ShieldAlert size={13} />}
+            {identityStatus === 'match' ? 'Verified' :
+             identityStatus === 'mismatch' ? `Mismatch (${identityFailCount}/3)` :
+             'Identity'}
+          </div>
+
           <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg ${timeWarning ? 'bg-red-500/10' : 'bg-white/[0.03]'}`}>
             <Clock size={14} className={timeWarning ? 'text-red-400' : 'text-slate-500'} />
             <span className={`text-sm font-mono ${timeWarning ? 'text-red-400' : 'text-slate-400'}`}>
@@ -749,6 +799,36 @@ export default function InterviewChat({ resumeText, onEnd }) {
 
         {/* Mic controls */}
         <div className="px-5 py-4 border-t border-white/[0.06] shrink-0">
+
+          {/* Identity mismatch warning banner */}
+          {identityBannerVisible && (
+            <div className={`mb-3 flex items-start gap-3 rounded-xl border px-4 py-3 text-sm transition-all duration-300 ${
+              identityFailCount >= 3
+                ? 'border-red-500/40 bg-red-500/10 text-red-300'
+                : 'border-amber-500/40 bg-amber-500/10 text-amber-300'
+            }`}>
+              <ShieldAlert size={16} className="shrink-0 mt-0.5" />
+              <div className="flex-1 min-w-0">
+                {identityFailCount >= 3 ? (
+                  <p className="font-semibold">Identity verification failed — interview is stopping.</p>
+                ) : (
+                  <>
+                    <p className="font-semibold">Identity mismatch detected ({identityFailCount}/3 total)</p>
+                    <p className="text-[11px] opacity-75 mt-0.5">The registered face does not match the webcam. Interview stops after 3 total failures.</p>
+                  </>
+                )}
+              </div>
+              {identityFailCount < 3 && (
+                <button
+                  onClick={() => setIdentityBannerVisible(false)}
+                  className="shrink-0 text-[11px] opacity-60 hover:opacity-100 transition-opacity"
+                >
+                  ×
+                </button>
+              )}
+            </div>
+          )}
+
           <div className="mb-3 flex items-center justify-between gap-3">
             <span className="text-[10px] uppercase tracking-[0.08em] text-slate-400">Interviewer Voice</span>
             <select
