@@ -1,6 +1,7 @@
-import { useState, useEffect, useRef } from 'react';
-import { Mic, Square, Clock, Video, CheckCircle, Bot, User } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Mic, Square, Clock, Video, CheckCircle, Bot, User, ArrowRight, ArrowLeft, Hand } from 'lucide-react';
 import CameraPanel from './CameraPanel';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const VOICE_OPTIONS = [
   { key: 'adam', label: 'Adam' },
@@ -18,6 +19,11 @@ export default function InterviewChat({ resumeText, onEnd }) {
   const [processing, setProcessing] = useState(false);
   const [stress, setStress] = useState(null);
   const [voiceKey, setVoiceKey] = useState('adam');
+  
+  // Calibration State
+  const [isCalibrating, setIsCalibrating] = useState(false);
+  const [calibrationStep, setCalibrationStep] = useState(0); // 0 = Turn Left, 1 = Turn Right, 2 = Palm Over Face, 3 = Done
+  const [currentYaw, setCurrentYaw] = useState(0);
 
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
@@ -102,7 +108,7 @@ export default function InterviewChat({ resumeText, onEnd }) {
   };
 
   useEffect(() => {
-    if (!joined || hasStarted.current) return;
+    if (!joined || hasStarted.current || isCalibrating) return;
     hasStarted.current = true;
     sendMessage('START', true);
     return () => {
@@ -257,7 +263,7 @@ export default function InterviewChat({ resumeText, onEnd }) {
   // ═══════════════════════════════════════════════════════
   // JOIN SCREEN
   // ═══════════════════════════════════════════════════════
-  if (!joined) {
+  if (!joined && !isCalibrating) {
     return (
       <div className="relative h-full overflow-hidden bg-[#0b0f1a]">
         <div
@@ -392,7 +398,7 @@ export default function InterviewChat({ resumeText, onEnd }) {
               </div>
 
               <button
-                onClick={() => setJoined(true)}
+                onClick={() => setIsCalibrating(true)}
                 className="w-full py-3.5 rounded-xl text-sm md:text-base font-semibold text-white bg-gradient-to-r from-[#3f56c5] via-[#5c74e8] to-[#7d92f3] hover:from-[#364bb0] hover:via-[#5068dc] hover:to-[#7085e8] shadow-[0_12px_30px_rgba(63,86,197,0.35)] transition-all flex items-center justify-center gap-2"
               >
                 <Video size={16} /> Start Interview
@@ -409,6 +415,262 @@ export default function InterviewChat({ resumeText, onEnd }) {
         </div>
       </div>
     );
+  }
+
+  // ═══════════════════════════════════════════════════════
+  // CALIBRATION / PRE-INTERVIEW SCREEN
+  // ═══════════════════════════════════════════════════════
+  if (isCalibrating && !joined) {
+    // Process calibration based on stress updates containing yaw
+    const handleCalibrationStress = (update) => {
+      setStress(update);
+      
+      const yaw = update.features?.yaw || 0;
+      const palm = update.features?.palm_detected || false;
+
+      // We must use functional state update for calibrationStep to avoid stale closures inside this callback
+      setCalibrationStep(prevStep => {
+          if (prevStep === 0) {
+            if (yaw > 12) {
+              // Play success audio
+              playSuccessHaptic();
+              // Delay before transitioning
+              setTimeout(() => {
+                setCalibrationStep(1);
+              }, 1200);
+              return 0.5; // Interim state for success styling
+            }
+            return prevStep;
+          } else if (prevStep === 1) {
+             if (yaw < -12) {
+               playSuccessHaptic();
+               setTimeout(() => {
+                 setCalibrationStep(2);
+               }, 1200);
+               return 1.5; // Interim state for success styling
+             }
+             return prevStep;
+          } else if (prevStep === 2) {
+             if (palm) {
+                 // The system is now verifying all 5 fingers + wrist, so if palm comes true, we can start the timer
+                 // Wait a longer time (5s total, user holds for 5s basically)
+                 playSuccessHaptic();
+                 setTimeout(() => {
+                   setCalibrationStep(3);
+                 }, 4000); // Extended from 1.2s to 4s to simulate holding the palm
+                 return 2.5; // Interim state for success styling
+             }
+             return prevStep;
+          } else if (prevStep === 3) {
+             setTimeout(() => {
+                setIsCalibrating(false);
+                setJoined(true);
+             }, 2000);
+             return 4; // Moving to joining state
+          }
+          return prevStep;
+      });
+      setCurrentYaw(yaw);
+    };
+
+    const playSuccessHaptic = () => {
+        // Simple Audio Context beep for success
+        try {
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            const ctx = new AudioContext();
+            const osc = ctx.createOscillator();
+            const gainNode = ctx.createGain();
+            
+            osc.type = 'sine';
+            // Play a pleasant double-chime ascending (Success sound)
+            osc.frequency.setValueAtTime(523.25, ctx.currentTime); // C5
+            osc.frequency.setValueAtTime(659.25, ctx.currentTime + 0.1); // E5
+            
+            gainNode.gain.setValueAtTime(0, ctx.currentTime);
+            gainNode.gain.linearRampToValueAtTime(0.3, ctx.currentTime + 0.05);
+            gainNode.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.2);
+            
+            osc.connect(gainNode);
+            gainNode.connect(ctx.destination);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.25);
+        } catch (e) {
+            console.log("Audio not supported");
+        }
+    };
+
+    // Calculate the 'display' step (treating .5 interim states as the original state just with a success wrapper)
+    const displayStep = Math.floor(calibrationStep);
+    const isSuccessState = calibrationStep % 1 !== 0;
+
+    return (
+      <div className="flex flex-col h-full bg-[#0a0a0f] text-slate-200">
+        <div className="flex-1 flex flex-col items-center justify-center p-8">
+          <div className="w-full max-w-2xl bg-[#111118] border border-white/[0.06] rounded-2xl overflow-hidden shadow-2xl flex flex-col">
+            <div className="p-6 border-b border-white/[0.06] text-center">
+               <h3 className="text-2xl font-semibold mb-2">Camera Calibration</h3>
+               <p className="text-sm text-slate-400">Let's make sure our face tracking works before we begin.</p>
+            </div>
+            
+            <div className="p-6 flex flex-col items-center w-full">
+              {/* Assistive Screens on Top */}
+              <div className="w-full max-w-md h-[280px] relative flex flex-col items-center justify-center text-center mb-6">
+                 
+                 <AnimatePresence mode="wait">
+                 {displayStep === 0 && (
+                    <motion.div 
+                        key="step0"
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -20, scale: 0.95 }}
+                        transition={{ duration: 0.4 }}
+                        className="absolute inset-0 flex flex-col items-center justify-center"
+                    >
+                        <h4 className={`text-2xl font-semibold mb-2 transition-colors duration-300 ${isSuccessState ? 'text-emerald-400' : 'text-indigo-400'}`}>
+                            {isSuccessState ? 'Perfect!' : 'Turn Head Left'}
+                        </h4>
+                        <p className={`text-sm mb-6 transition-colors duration-300 ${isSuccessState ? 'text-emerald-500/80' : 'text-slate-400'}`}>
+                            {isSuccessState ? 'Tracking lock acquired.' : 'Slowly turn your head to the left to calibrate tracking.'}
+                        </p>
+                        
+                        <motion.div 
+                            animate={isSuccessState ? { scale: [1, 1.1, 1], borderColor: 'rgba(16, 185, 129, 0.6)', backgroundColor: 'rgba(16, 185, 129, 0.2)' } : {}}
+                            transition={{ duration: 0.5 }}
+                            className={`w-32 h-32 rounded-full border flex items-center justify-center transition-all duration-300 ${isSuccessState ? 'shadow-[0_0_50px_rgba(16,185,129,0.3)] border-emerald-500 bg-emerald-500/20' : 'bg-indigo-500/10 border-indigo-500/30 shadow-[0_0_40px_rgba(99,102,241,0.2)]'}`}
+                        >
+                           {isSuccessState ? (
+                               <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring" }}>
+                                   <CheckCircle size={64} className="text-emerald-400" />
+                               </motion.div>
+                           ) : (
+                               <video autoPlay loop muted playsInline className="w-32 h-32 object-cover rounded-full mix-blend-screen opacity-90">
+                                  <source src="/right left.webm" type="video/webm" />
+                               </video>
+                           )}
+                        </motion.div>
+                    </motion.div>
+                 )}
+
+                 {displayStep === 1 && (
+                    <motion.div 
+                        key="step1"
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -20, scale: 0.95 }}
+                        transition={{ duration: 0.4 }}
+                        className="absolute inset-0 flex flex-col items-center justify-center"
+                    >
+                        <h4 className={`text-2xl font-semibold mb-2 transition-colors duration-300 ${isSuccessState ? 'text-emerald-400' : 'text-indigo-400'}`}>
+                            {isSuccessState ? 'Great!' : 'Turn Head Right'}
+                        </h4>
+                        <p className={`text-sm mb-6 transition-colors duration-300 ${isSuccessState ? 'text-emerald-500/80' : 'text-slate-400'}`}>
+                            {isSuccessState ? 'Opposite side calibrated.' : 'Now slowly turn your head to the right side.'}
+                        </p>
+
+                        <motion.div 
+                            animate={isSuccessState ? { scale: [1, 1.1, 1], borderColor: 'rgba(16, 185, 129, 0.6)', backgroundColor: 'rgba(16, 185, 129, 0.2)' } : {}}
+                            transition={{ duration: 0.5 }}
+                            className={`w-32 h-32 rounded-full border flex items-center justify-center transition-all duration-300 ${isSuccessState ? 'shadow-[0_0_50px_rgba(16,185,129,0.3)] border-emerald-500 bg-emerald-500/20' : 'bg-indigo-500/10 border-indigo-500/30 shadow-[0_0_40px_rgba(99,102,241,0.2)]'}`}
+                        >
+                           {isSuccessState ? (
+                               <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring" }}>
+                                   <CheckCircle size={64} className="text-emerald-400" />
+                               </motion.div>
+                           ) : (
+                               <video autoPlay loop muted playsInline className="w-32 h-32 object-cover rounded-full mix-blend-screen opacity-90" style={{ transform: 'scaleX(-1)' }}>
+                                  <source src="/right left.webm" type="video/webm" />
+                               </video>
+                           )}
+                        </motion.div>
+                    </motion.div>
+                 )}
+
+                 {displayStep === 2 && (
+                    <motion.div 
+                        key="step2"
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -20, scale: 0.95 }}
+                        transition={{ duration: 0.4 }}
+                        className="absolute inset-0 flex flex-col items-center justify-center"
+                    >
+                        <h4 className={`text-2xl font-semibold mb-2 transition-colors duration-300 ${isSuccessState ? 'text-emerald-400' : 'text-emerald-400'}`}>
+                            {isSuccessState ? 'Got it!' : 'Show Palm'}
+                        </h4>
+                        <p className={`text-sm mb-6 transition-colors duration-300 ${isSuccessState ? 'text-emerald-500/80' : 'text-slate-400'}`}>
+                            {isSuccessState ? 'Hand detection confirmed.' : 'Raise your hand into frame to confirm filter block.'}
+                        </p>
+
+                        <motion.div 
+                            animate={isSuccessState ? { scale: [1, 1.1, 1], borderColor: 'rgba(16, 185, 129, 0.6)', backgroundColor: 'rgba(16, 185, 129, 0.3)' } : {}}
+                            transition={{ duration: 0.5 }}
+                            className={`w-32 h-32 rounded-full border flex items-center justify-center transition-all duration-300 ${isSuccessState ? 'shadow-[0_0_50px_rgba(16,185,129,0.4)] border-emerald-500 bg-emerald-500/30' : 'bg-emerald-500/10 border-emerald-500/30 shadow-[0_0_40px_rgba(16,185,129,0.2)]'}`}
+                        >
+                           {isSuccessState ? (
+                               <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring" }}>
+                                   <CheckCircle size={64} className="text-emerald-400" />
+                               </motion.div>
+                           ) : (
+                               <video autoPlay loop muted playsInline className="w-32 h-32 object-cover rounded-full mix-blend-screen opacity-90">
+                                  <source src="/risinghand.webm" type="video/webm" />
+                               </video>
+                           )}
+                        </motion.div>
+                    </motion.div>
+                 )}
+
+                 {displayStep >= 3 && (
+                    <motion.div 
+                        key="step3"
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 0.6, type: "spring" }}
+                        className="absolute inset-0 flex flex-col items-center justify-center"
+                    >
+                        <h4 className="text-2xl font-semibold text-emerald-400 mb-2">Calibration Complete</h4>
+                        <p className="text-slate-400 text-sm mb-6">Starting your interview now...</p>
+                        <motion.div 
+                            animate={{ scale: [1, 1.05, 1], boxShadow: ['0 0 50px rgba(16,185,129,0.3)', '0 0 80px rgba(16,185,129,0.6)', '0 0 50px rgba(16,185,129,0.3)'] }}
+                            transition={{ duration: 2, repeat: Infinity }}
+                            className="w-32 h-32 rounded-full bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center"
+                        >
+                           <CheckCircle size={64} className="text-emerald-400" />
+                        </motion.div>
+                    </motion.div>
+                 )}
+                 </AnimatePresence>
+              </div>
+
+              {/* Camera Panel on Bottom */}
+              <div className="w-full max-w-sm aspect-video bg-black rounded-xl overflow-hidden border border-white/10 mb-6 relative">
+                  <CameraPanel onStressUpdate={handleCalibrationStress} isCalibration={true} />
+                  
+                  {/* Current Yaw overlay inside camera for real-time feedback */}
+                  {displayStep < 2 && !isSuccessState && (
+                     <div className="absolute bottom-3 left-1/2 -translate-x-1/2 text-xs font-mono bg-black/60 backdrop-blur-md px-3 py-1 rounded-full text-indigo-300 border border-white/10 shadow-lg">
+                        Yaw: {currentYaw > 0 ? '+' : ''}{currentYaw.toFixed(1)}°
+                     </div>
+                  )}
+              </div>
+
+              {/* Progress Indicator */}
+              <div className="flex gap-2">
+                 {[0,1,2].map((step) => (
+                    <div key={step} className={`w-2 h-2 rounded-full transition-all duration-500 ${displayStep > step ? 'bg-emerald-500' : displayStep === step && isSuccessState ? 'bg-emerald-400 scale-125' : displayStep === step ? 'bg-indigo-500 scale-125' : 'bg-white/10'}`} />
+                 ))}
+              </div>
+            </div>
+            
+            {/* Fallback skip button for debugging */}
+            <div className="p-4 border-t border-white/[0.06] flex justify-center">
+                <button onClick={() => { setIsCalibrating(false); setJoined(true); }} className="text-xs text-slate-500 hover:text-white transition-colors underline-offset-4 hover:underline">
+                  Skip Calibration (Debug)
+                </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   // ═══════════════════════════════════════════════════════

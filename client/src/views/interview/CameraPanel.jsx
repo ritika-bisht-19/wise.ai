@@ -71,7 +71,6 @@ function pupilVerticalRatio(video, W, H, lm, offCtx) {
         if (count < 5) return 0.5; // no clear pupil found
         return (sumY / count) / cH; // 0 = top, 1 = bottom
     });
-
     return (ratios[0] + ratios[1]) / 2;
 }
 
@@ -96,7 +95,7 @@ function estimateYawDeg(lm) {
 }
 
 
-export default function CameraPanel({ onStressUpdate }) {
+export default function CameraPanel({ onStressUpdate, isCalibration = false }) {
     const videoRef = useRef(null);
     const canvasRef = useRef(null);
     const offscreenRef = useRef(null);
@@ -121,7 +120,66 @@ export default function CameraPanel({ onStressUpdate }) {
     const [stress, setStress] = useState({ level: 'calm', score: 0, label: 'Initializing...' });
     const [features, setFeatures] = useState({ eyebrow_raise: 0, lip_tension: 0, head_nod_intensity: 0, symmetry_delta: 0, blink_rate: 0, upward_gaze_rate: 0, head_turn_rate: 0, smile_score: 0 });
     const [faceDetected, setFaceDetected] = useState(false);
+    const [multipleFacesDetected, setMultipleFacesDetected] = useState(false);
+    const [handsDetected, setHandsDetected] = useState(false);
     const [modelsLoaded, setModelsLoaded] = useState(false);
+
+    const hasStartedTracking = useRef(false);
+    const lastWarningTs = useRef({ noFace: 0, multiFace: 0 });
+
+    const playWarningHaptic = () => {
+        try {
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            const ctx = new AudioContext();
+            
+            const createTone = (freq, startTime, duration) => {
+                const osc = ctx.createOscillator();
+                const gainNode = ctx.createGain();
+                
+                // Use a soft sine wave for professional subtle tone
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(freq, startTime); 
+                
+                // Soft attack and release envelope
+                gainNode.gain.setValueAtTime(0, startTime);
+                gainNode.gain.linearRampToValueAtTime(0.08, startTime + 0.05); // low volume
+                gainNode.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+                
+                osc.connect(gainNode);
+                gainNode.connect(ctx.destination);
+                osc.start(startTime);
+                osc.stop(startTime + duration);
+            };
+
+            // Play a completely subtle double "boop" (descending interval for warning)
+            createTone(440, ctx.currentTime, 0.2); // A4
+            createTone(349.23, ctx.currentTime + 0.15, 0.4); // F4
+
+        } catch (e) {
+            console.log("Audio not supported");
+        }
+    };
+
+    useEffect(() => {
+        // Voice haptics to alert the user of tracking lost or interference
+        if (faceDetected) hasStartedTracking.current = true;
+
+        if (hasStartedTracking.current) {
+            const now = Date.now();
+            
+            // Play haptic warning if no face is visible and we haven't warned in the last 8 seconds
+            if (!faceDetected && now - lastWarningTs.current.noFace > 8000) {
+                lastWarningTs.current.noFace = now;
+                playWarningHaptic();
+            }
+            
+            // Play haptic warning if multiple faces are visible and we haven't warned in the last 8 seconds
+            if (multipleFacesDetected && now - lastWarningTs.current.multiFace > 8000) {
+                lastWarningTs.current.multiFace = now;
+                playWarningHaptic();
+            }
+        }
+    }, [faceDetected, multipleFacesDetected]);
 
     const smooth = (key, val, n = 5) => {
         const arr = history.current[key];
@@ -161,20 +219,100 @@ export default function CameraPanel({ onStressUpdate }) {
         loadModels();
 
         let camera;
+        let handModel;
         // Offscreen canvas for reading raw video pixels (pupil detection)
         const oc = document.createElement('canvas');
         const octx = oc.getContext('2d', { willReadFrequently: true });
         offscreenRef.current = { canvas: oc, ctx: octx };
 
         const init = () => {
-            if (!window.FaceMesh || !window.Camera) { setTimeout(init, 300); return; }
+            if (!window.FaceMesh || !window.Camera || (isCalibration && !window.Hands)) { setTimeout(init, 300); return; }
+
+            // Initialize Hands Model (only need to run this heavily during calibration, but we'll attach it to the same camera stream)
+            if (isCalibration && window.Hands) {
+                handModel = new window.Hands({
+                    locateFile: f => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${f}`,
+                });
+                handModel.setOptions({
+                    maxNumHands: 2,
+                    modelComplexity: 1,
+                    minDetectionConfidence: 0.5,
+                    minTrackingConfidence: 0.5
+                });
+                handModel.onResults((results) => {
+                   if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+                        
+                        // We check the first hand detected to ensure 5 fingers are mapped/visible
+                        const hand = results.multiHandLandmarks[0];
+                        // Typical landmarks needed to verify full palm: wrist (0), thumb tip (4), index tip (8), middle tip (12), ring tip (16), pinky tip (20)
+                        const requiredLandmarks = [0, 4, 8, 12, 16, 20];
+                        let isFullPalm = true;
+                        
+                        // Increase strictness: visibility needs to be higher to ensure actual open palm
+                        for (const idx of requiredLandmarks) {
+                            if (!hand[idx] || hand[idx].visibility < 0.5) {
+                                isFullPalm = false;
+                                break;
+                            }
+                        }
+                        
+                        // Simple gesture check: fingers should be above the wrist (y is inverted, so y should be less than wrist y)
+                        if (isFullPalm && hand[0]) {
+                             if (hand[8].y > hand[0].y || hand[12].y > hand[0].y || hand[16].y > hand[0].y) {
+                                 isFullPalm = false; // Fingers are pointing down or hand is closed
+                             }
+                        }
+
+                        // Drawing logic on the canvas
+                        if (canvasRef.current) {
+                           const ctx = canvasRef.current.getContext('2d');
+                           // Match dimensions just to be safe
+                           ctx.save();
+                           if (isCalibration && window.matchMedia('(transform: scaleX(-1))')) {
+                                // Mirror context if video is mirrored
+                                ctx.translate(canvasRef.current.width, 0);
+                                ctx.scale(-1, 1);
+                           }
+
+                           // Use MediaPipe's drawing utils to draw the literal skeleton map over the hand! Just like the screenshot 
+                           for (let i = 0; i < results.multiHandLandmarks.length; i++) {
+                               const landmarks = results.multiHandLandmarks[i];
+                               if (window.drawConnectors) {
+                                   // Draw bones (white like the screenshot)
+                                   window.drawConnectors(ctx, landmarks, window.HAND_CONNECTIONS, { color: '#FFFFFF', lineWidth: 3 });
+                               }
+                               if (window.drawLandmarks) {
+                                   // Draw joints (white filled circles like the screenshot)
+                                   window.drawLandmarks(ctx, landmarks, { color: '#FFFFFF', fillColor: '#FFFFFF', lineWidth: 2, radius: 4 });
+                               }
+                           }
+                           ctx.restore();
+                        }
+
+                        if (isFullPalm) {
+                           setHandsDetected(true);
+                           // When hand is detected, we fire a special fake 'palm' event on top of stress updates
+                           onStressUpdate?.({ 
+                               level: stableLevelRef.current, 
+                               score: smoothedScore.current, 
+                               label: 'Calibration Hand Tracking', 
+                               features: { ...latestFeaturesRef.current, palm_detected: true } 
+                           });
+                        } else {
+                           setHandsDetected(false);
+                        }
+                   } else {
+                       setHandsDetected(false);
+                   }
+                });
+            }
 
             const faceMesh = new window.FaceMesh({
                 locateFile: f => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${f}`,
             });
 
             faceMesh.setOptions({
-                maxNumFaces: 1,
+                maxNumFaces: 3, // Allow detecting more than 1 face so we know if there are background people
                 refineLandmarks: true,
                 minDetectionConfidence: 0.5,
                 minTrackingConfidence: 0.5,
@@ -192,6 +330,12 @@ export default function CameraPanel({ onStressUpdate }) {
                     canvas.height = H;
                     const ctx = canvas.getContext('2d');
                     ctx.clearRect(0, 0, W, H);
+
+                    if (multiFaceLandmarks && multiFaceLandmarks.length > 1) {
+                        setMultipleFacesDetected(true);
+                    } else {
+                        setMultipleFacesDetected(false);
+                    }
 
                     const lm = multiFaceLandmarks?.[0];
                     setFaceDetected(!!lm);
@@ -346,7 +490,9 @@ export default function CameraPanel({ onStressUpdate }) {
                     stableLevelRef.current = level;
 
                     const label = { calm: 'Calm', mild: 'Slight Stress', high: 'High Stress' }[level];
-                    const newFeatures = { eyebrow_raise: eyebrow, lip_tension: lip, head_nod_intensity: nod, symmetry_delta: symmetry, blink_rate: blinkRate, upward_gaze_rate: gazeUpRate, head_turn_rate: headTurnRate, smile_score: smile };
+                    const newFeatures = { eyebrow_raise: eyebrow, lip_tension: lip, head_nod_intensity: nod, symmetry_delta: symmetry, blink_rate: blinkRate, upward_gaze_rate: gazeUpRate, head_turn_rate: headTurnRate, smile_score: smile, yaw: yawDeg };
+
+                    latestFeaturesRef.current = newFeatures; // keep track globally for hand injection
 
                     const nowForUi = Date.now();
                     if (nowForUi - lastUiSyncTs.current >= 120) {
@@ -361,11 +507,20 @@ export default function CameraPanel({ onStressUpdate }) {
             });
 
             camera = new window.Camera(videoRef.current, {
-                onFrame: async () => { if (videoRef.current) await faceMesh.send({ image: videoRef.current }); },
+                onFrame: async () => { 
+                    if (videoRef.current) {
+                        await faceMesh.send({ image: videoRef.current });
+                        if (handModel) {
+                           await handModel.send({ image: videoRef.current });
+                        }
+                    } 
+                },
                 width: 640, height: 480,
             });
             camera.start();
         };
+
+        const latestFeaturesRef = { current: {} }; // Store latest face features here so hand can broadcast it alongside palm_detected
 
         init();
         return () => {
@@ -416,6 +571,7 @@ export default function CameraPanel({ onStressUpdate }) {
                 />
 
                 {/* Behavioral Stability widget */}
+                {!isCalibration && (
                 <div className="absolute top-3 left-3 px-3 py-2.5 rounded-xl border border-white/15 bg-black/65 backdrop-blur-md shadow-[0_8px_24px_rgba(0,0,0,0.35)]">
                     <div className="flex items-center gap-3">
                         <div className="relative w-14 h-14 shrink-0">
@@ -456,12 +612,22 @@ export default function CameraPanel({ onStressUpdate }) {
                         </div>
                     </div>
                 </div>
+                )}
 
                 {/* No face */}
                 {!faceDetected && (
                     <div className="absolute inset-0 flex items-center justify-center bg-black/30">
-                        <span className="px-4 py-2 rounded-lg bg-black/60 backdrop-blur-sm text-xs text-slate-400">
-                            Looking for your face...
+                        <span className="px-4 py-2 rounded-lg bg-black/80 border border-red-500/50 backdrop-blur-sm text-xs text-red-400 font-medium">
+                            No face detected. Please position yourself in front of the camera.
+                        </span>
+                    </div>
+                )}
+
+                {/* Multiple Faces Warning */}
+                {faceDetected && multipleFacesDetected && (
+                    <div className="absolute top-4 left-1/2 -translate-x-1/2 flex items-center justify-center">
+                        <span className="px-3 py-1.5 rounded-lg bg-amber-500/20 border border-amber-500/50 backdrop-blur-md text-[11px] text-amber-300 font-medium whitespace-nowrap shadow-lg">
+                            Multiple faces detected! Ensure you are alone.
                         </span>
                     </div>
                 )}
@@ -473,6 +639,7 @@ export default function CameraPanel({ onStressUpdate }) {
             </div>
 
             {/* Metrics — compact 4-col grid */}
+            {!isCalibration && (
             <div className="shrink-0 px-3 py-3 border-t border-white/[0.06]">
                 <div className="grid grid-cols-4 gap-x-3 gap-y-3">
                     {metrics.map(({ label, value, max }) => (
@@ -489,6 +656,7 @@ export default function CameraPanel({ onStressUpdate }) {
                     ))}
                 </div>
             </div>
+            )}
         </div>
     );
 }
