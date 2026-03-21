@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Mic, Square, Clock, Video, CheckCircle, Bot, User, ArrowRight, ArrowLeft, Hand, ShieldAlert, ShieldCheck } from 'lucide-react';
 import CameraPanel from './CameraPanel';
 import { motion, AnimatePresence } from 'framer-motion';
+import * as Pitchfinder from 'pitchfinder';
 
 const VOICE_OPTIONS = [
   { key: 'adam', label: 'Adam' },
@@ -10,7 +11,19 @@ const VOICE_OPTIONS = [
   { key: 'antoni', label: 'Antoni' },
 ];
 
-export default function InterviewChat({ resumeText, onEnd }) {
+const FILLER_PATTERNS = [
+  /\bum\b/g,
+  /\buh\b/g,
+  /\blike\b/g,
+  /\byou know\b/g,
+  /\bi mean\b/g,
+  /\bactually\b/g,
+  /\bbasically\b/g,
+  /\bsort of\b/g,
+  /\bkind of\b/g,
+];
+
+export default function InterviewChat({ resumeText, onEnd, onProgressChange }) {
   const PALM_HOLD_REQUIRED_MS = 5000;
   const [joined, setJoined] = useState(false);
   const [messages, setMessages] = useState([]);
@@ -31,6 +44,7 @@ export default function InterviewChat({ resumeText, onEnd }) {
   const [isCalibrating, setIsCalibrating] = useState(false);
   const [calibrationStep, setCalibrationStep] = useState(0); // 0 = Turn Left, 1 = Turn Right, 2 = Palm Over Face, 3 = Done
   const [currentYaw, setCurrentYaw] = useState(0);
+  const [faceDetected, setFaceDetected] = useState(null);
   const [palmHoldMs, setPalmHoldMs] = useState(0);
   const palmHoldStartRef = useRef(null);
   const palmStepCompletedRef = useRef(false);
@@ -45,6 +59,249 @@ export default function InterviewChat({ resumeText, onEnd }) {
   const audioCtxRef = useRef(null);
   const ampRafRef = useRef(null);
   const ampSmoothRef = useRef(0.28);
+  const recordingStartMsRef = useRef(0);
+  const voiceStatsRef = useRef({
+    chunksAnalyzed: 0,
+    totalRecordedSec: 0,
+    totalSpeakingSec: 0,
+    totalSilenceSec: 0,
+    totalPauseSec: 0,
+    pauseEvents: 0,
+    totalWords: 0,
+    fillerWordCount: 0,
+    pitchSamples: 0,
+    pitchSum: 0,
+    pitchSqSum: 0,
+    pitchMin: Number.POSITIVE_INFINITY,
+    pitchMax: 0,
+  });
+  const behavioralStatsRef = useRef({
+    samples: 0,
+    blinkRateSum: 0,
+    nodRateSum: 0,
+    gazeUpRateSum: 0,
+    headTurnRateSum: 0,
+    lipTensionSum: 0,
+    smileScoreSum: 0,
+    gazeTowardCount: 0,
+    facialTensionFrames: 0,
+    postureShiftFrames: 0,
+    smileFrames: 0,
+    stressHighFrames: 0,
+    stressModerateFrames: 0,
+  });
+
+  const buildVoiceAnalyticsSummary = useCallback(() => {
+    const stats = voiceStatsRef.current;
+    const totalRecordedSec = Math.max(stats.totalRecordedSec, 0);
+    const totalSpeakingSec = Math.max(stats.totalSpeakingSec, 0);
+    const totalWords = stats.totalWords;
+
+    const speechRateWpm = totalRecordedSec > 0 ? (totalWords / totalRecordedSec) * 60 : 0;
+    const articulationRateWpm = totalSpeakingSec > 0 ? (totalWords / totalSpeakingSec) * 60 : 0;
+    const pauseRatio = totalRecordedSec > 0 ? stats.totalPauseSec / totalRecordedSec : 0;
+    const avgPauseSec = stats.pauseEvents > 0 ? stats.totalPauseSec / stats.pauseEvents : 0;
+
+    let pitchMeanHz = null;
+    let pitchVariationSdHz = null;
+    let pitchRangeHz = null;
+
+    if (stats.pitchSamples > 0) {
+      pitchMeanHz = stats.pitchSum / stats.pitchSamples;
+      const variance = Math.max((stats.pitchSqSum / stats.pitchSamples) - (pitchMeanHz * pitchMeanHz), 0);
+      pitchVariationSdHz = Math.sqrt(variance);
+      pitchRangeHz = Math.max(stats.pitchMax - stats.pitchMin, 0);
+    }
+
+    return {
+      chunks_analyzed: stats.chunksAnalyzed,
+      total_recorded_sec: Number(totalRecordedSec.toFixed(2)),
+      total_speaking_sec: Number(totalSpeakingSec.toFixed(2)),
+      total_silence_sec: Number(stats.totalSilenceSec.toFixed(2)),
+      total_words: totalWords,
+      speech_rate_wpm: Number(speechRateWpm.toFixed(1)),
+      articulation_rate_wpm: Number(articulationRateWpm.toFixed(1)),
+      pause_ratio: Number(pauseRatio.toFixed(3)),
+      avg_pause_sec: Number(avgPauseSec.toFixed(2)),
+      pause_events: stats.pauseEvents,
+      filler_word_count: stats.fillerWordCount,
+      filler_rate_per_100_words: totalWords > 0 ? Number(((stats.fillerWordCount / totalWords) * 100).toFixed(1)) : 0,
+      pitch_mean_hz: pitchMeanHz !== null ? Number(pitchMeanHz.toFixed(1)) : null,
+      pitch_range_hz: pitchRangeHz !== null ? Number(pitchRangeHz.toFixed(1)) : null,
+      pitch_variation_sd_hz: pitchVariationSdHz !== null ? Number(pitchVariationSdHz.toFixed(1)) : null,
+    };
+  }, []);
+
+  const buildBehavioralAnalyticsSummary = useCallback(() => {
+    const stats = behavioralStatsRef.current;
+    const n = Math.max(stats.samples, 1);
+
+    return {
+      samples: stats.samples,
+      blink_rate_bpm_avg: Number((stats.blinkRateSum / n).toFixed(2)),
+      head_nod_rate_bpm_avg: Number((stats.nodRateSum / n).toFixed(2)),
+      gaze_up_rate_bpm_avg: Number((stats.gazeUpRateSum / n).toFixed(2)),
+      head_turn_rate_bpm_avg: Number((stats.headTurnRateSum / n).toFixed(2)),
+      lip_tension_avg: Number((stats.lipTensionSum / n).toFixed(3)),
+      smile_score_avg: Number((stats.smileScoreSum / n).toFixed(3)),
+      gaze_toward_camera_ratio: Number((stats.gazeTowardCount / n).toFixed(3)),
+      facial_tension_ratio: Number((stats.facialTensionFrames / n).toFixed(3)),
+      posture_shift_ratio: Number((stats.postureShiftFrames / n).toFixed(3)),
+      smile_presence_ratio: Number((stats.smileFrames / n).toFixed(3)),
+      stress_high_ratio: Number((stats.stressHighFrames / n).toFixed(3)),
+      stress_moderate_ratio: Number((stats.stressModerateFrames / n).toFixed(3)),
+    };
+  }, []);
+
+  const buildInterviewAnalyticsSummary = useCallback(() => ({
+    voiceAnalytics: buildVoiceAnalyticsSummary(),
+    behavioralAnalytics: buildBehavioralAnalyticsSummary(),
+  }), [buildVoiceAnalyticsSummary, buildBehavioralAnalyticsSummary]);
+
+  const handleLiveStressUpdate = useCallback((update) => {
+    setStress(update);
+    const features = update?.features || {};
+    const stats = behavioralStatsRef.current;
+
+    const blinkRate = Number(features.blink_rate || 0);
+    const nodRate = Number(features.head_nod_intensity || 0) * 1000;
+    const gazeUpRate = Number(features.upward_gaze_rate || 0);
+    const headTurnRate = Number(features.head_turn_rate || 0);
+    const lipTension = Number(features.lip_tension || 0);
+    const smileScore = Number(features.smile_score || 0);
+    const yaw = Number(features.yaw || 0);
+    const level = update?.level;
+
+    stats.samples += 1;
+    stats.blinkRateSum += blinkRate;
+    stats.nodRateSum += nodRate;
+    stats.gazeUpRateSum += gazeUpRate;
+    stats.headTurnRateSum += headTurnRate;
+    stats.lipTensionSum += lipTension;
+    stats.smileScoreSum += smileScore;
+
+    if (Math.abs(yaw) <= 18) stats.gazeTowardCount += 1;
+    if (lipTension >= 0.45) stats.facialTensionFrames += 1;
+    if (nodRate > 16 || headTurnRate > 5) stats.postureShiftFrames += 1;
+    if (smileScore >= 0.35) stats.smileFrames += 1;
+    if (level === 'high') stats.stressHighFrames += 1;
+    if (level === 'mild') stats.stressModerateFrames += 1;
+  }, []);
+
+  const analyzeVoiceChunk = useCallback(async (blob, transcriptText, chunkDurationSec) => {
+    const safeDurationSec = Math.max(chunkDurationSec || 0, 0);
+    let speakingSec = 0;
+    let silenceSec = safeDurationSec;
+    let pauseSec = 0;
+    let pauseEvents = 0;
+    let pitchList = [];
+
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (AudioCtx) {
+        const audioCtx = new AudioCtx();
+        const ab = await blob.arrayBuffer();
+        const audioBuffer = await audioCtx.decodeAudioData(ab.slice(0));
+        const samples = audioBuffer.getChannelData(0);
+        const sampleRate = audioBuffer.sampleRate;
+
+        const frameSize = 2048;
+        const hopSize = 512;
+        const frameCount = Math.max(Math.floor((samples.length - frameSize) / hopSize), 0);
+
+        if (frameCount > 0) {
+          const rmsValues = [];
+          const frames = [];
+          for (let frame = 0; frame <= frameCount; frame++) {
+            const start = frame * hopSize;
+            const end = start + frameSize;
+            const slice = samples.slice(start, end);
+            let sumSq = 0;
+            for (let i = 0; i < slice.length; i++) {
+              sumSq += slice[i] * slice[i];
+            }
+            const rms = Math.sqrt(sumSq / Math.max(slice.length, 1));
+            rmsValues.push(rms);
+            frames.push(slice);
+          }
+
+          const sorted = [...rmsValues].sort((a, b) => a - b);
+          const p20 = sorted[Math.floor(sorted.length * 0.2)] || 0.006;
+          const silenceThreshold = Math.max(0.008, p20 * 2.4);
+
+          const detectPitch = Pitchfinder.YIN({ sampleRate });
+          const voicedMask = rmsValues.map((rms) => rms > silenceThreshold);
+          const voicedFrames = voicedMask.filter(Boolean).length;
+
+          for (let i = 0; i < voicedMask.length; i++) {
+            if (!voicedMask[i]) continue;
+            const pitchHz = detectPitch(frames[i]);
+            if (pitchHz && pitchHz >= 70 && pitchHz <= 380) {
+              pitchList.push(pitchHz);
+            }
+          }
+
+          let silentRun = 0;
+          for (let i = 0; i < voicedMask.length; i++) {
+            if (!voicedMask[i]) {
+              silentRun += 1;
+              continue;
+            }
+            if (silentRun > 0) {
+              const runSec = (silentRun * hopSize) / sampleRate;
+              if (runSec >= 0.25) {
+                pauseEvents += 1;
+                pauseSec += runSec;
+              }
+              silentRun = 0;
+            }
+          }
+          if (silentRun > 0) {
+            const runSec = (silentRun * hopSize) / sampleRate;
+            if (runSec >= 0.25) {
+              pauseEvents += 1;
+              pauseSec += runSec;
+            }
+          }
+
+          speakingSec = Math.min((voicedFrames * hopSize) / sampleRate, safeDurationSec || audioBuffer.duration);
+          silenceSec = Math.max((safeDurationSec || audioBuffer.duration) - speakingSec, 0);
+        }
+
+        await audioCtx.close();
+      }
+    } catch (err) {
+      console.warn('Voice analytics chunk analysis failed:', err);
+    }
+
+    const cleanText = (transcriptText || '').toLowerCase();
+    const wordCount = (cleanText.match(/[a-zA-Z']+/g) || []).length;
+    const fillerWordCount = FILLER_PATTERNS.reduce((count, pattern) => {
+      const matches = cleanText.match(pattern);
+      return count + (matches ? matches.length : 0);
+    }, 0);
+
+    const stats = voiceStatsRef.current;
+    stats.chunksAnalyzed += 1;
+    stats.totalRecordedSec += safeDurationSec;
+    stats.totalSpeakingSec += speakingSec;
+    stats.totalSilenceSec += silenceSec;
+    stats.totalPauseSec += pauseSec;
+    stats.pauseEvents += pauseEvents;
+    stats.totalWords += wordCount;
+    stats.fillerWordCount += fillerWordCount;
+
+    if (pitchList.length) {
+      stats.pitchSamples += pitchList.length;
+      for (let i = 0; i < pitchList.length; i++) {
+        const p = pitchList[i];
+        stats.pitchSum += p;
+        stats.pitchSqSum += p * p;
+        if (p < stats.pitchMin) stats.pitchMin = p;
+        if (p > stats.pitchMax) stats.pitchMax = p;
+      }
+    }
+  }, []);
 
   const stopWaveTracking = () => {
     if (ampRafRef.current) {
@@ -132,6 +389,11 @@ export default function InterviewChat({ resumeText, onEnd }) {
   }, [joined]);
 
   useEffect(() => {
+    if (!onProgressChange) return;
+    onProgressChange(joined ? 'interview' : 'calibration');
+  }, [joined, onProgressChange]);
+
+  useEffect(() => {
     if (!joined || !waveContainerRef.current || siriWaveRef.current) return;
     let cancelled = false;
 
@@ -167,12 +429,16 @@ export default function InterviewChat({ resumeText, onEnd }) {
     if (!joined) return;
     const timer = setInterval(() => {
       setTimeLeft(prev => {
-        if (prev <= 1) { clearInterval(timer); onEnd(messages); return 0; }
+        if (prev <= 1) {
+          clearInterval(timer);
+          onEnd(messages, buildInterviewAnalyticsSummary());
+          return 0;
+        }
         return prev - 1;
       });
     }, 1000);
     return () => clearInterval(timer);
-  }, [joined, messages, onEnd]);
+  }, [joined, messages, onEnd, buildInterviewAnalyticsSummary]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -230,13 +496,17 @@ export default function InterviewChat({ resumeText, onEnd }) {
           const blob = new Blob(audioChunksRef.current, { type: 'audio/wav' });
           const fd = new FormData();
           fd.append('audio', blob, 'user_voice.wav');
+          const chunkDurationSec = recordingStartMsRef.current > 0 ? (Date.now() - recordingStartMsRef.current) / 1000 : 0;
+          recordingStartMsRef.current = 0;
           try {
             const res = await fetch('/api/transcribe', { method: 'POST', body: fd });
             const data = await res.json();
+            await analyzeVoiceChunk(blob, data.text || '', chunkDurationSec);
             data.text ? sendMessage(data.text) : setProcessing(false);
           } catch { setProcessing(false); }
         };
         mediaRecorderRef.current.start();
+        recordingStartMsRef.current = Date.now();
         setIsListening(true);
       } catch (err) {
         console.error('Mic error:', err);
@@ -260,7 +530,7 @@ export default function InterviewChat({ resumeText, onEnd }) {
       setMessages(prev => isSystem ? [aiMsg] : [...prev, aiMsg]);
       speakText(data.reply);
       if (data.reply.toLowerCase().includes('concludes our interview')) {
-        setTimeout(() => onEnd([...messages, newMsg, aiMsg]), 4000);
+        setTimeout(() => onEnd([...messages, newMsg, aiMsg], buildInterviewAnalyticsSummary()), 4000);
       }
     } catch (e) { console.error('Chat error:', e); }
     finally { setProcessing(false); }
@@ -296,10 +566,10 @@ export default function InterviewChat({ resumeText, onEnd }) {
 
       if (next >= 3) {
         // 3 total mismatches accumulated → stop interview
-        setTimeout(() => onEnd(messages), 2500);
+        setTimeout(() => onEnd(messages, buildInterviewAnalyticsSummary()), 2500);
       }
     }
-  }, [messages, onEnd]);
+  }, [messages, onEnd, buildInterviewAnalyticsSummary]);
 
   // ═══════════════════════════════════════════════════════
   // JOIN SCREEN
@@ -408,7 +678,6 @@ export default function InterviewChat({ resumeText, onEnd }) {
                 {[
                   'Camera and microphone required',
                   'Real-time facial analysis enabled',
-                  '12-turn technical interview flow',
                   'AI voice asks each question',
                 ].map((item) => (
                   <div key={item} className="flex items-center gap-3 px-4 py-3 rounded-xl border border-white/55 bg-white/48">
@@ -466,7 +735,11 @@ export default function InterviewChat({ resumeText, onEnd }) {
     const handleCalibrationStress = (update) => {
       setStress(update);
       
-      const yaw = update.features?.yaw || 0;
+      const rawYaw = update.features?.yaw;
+      const yaw = typeof rawYaw === 'number' ? rawYaw : 0;
+      const faceSignal = update.features?.face_detected;
+      const detected = typeof faceSignal === 'boolean' ? faceSignal : typeof rawYaw === 'number';
+      setFaceDetected(detected);
       const palm = update.features?.palm_detected || false;
 
       // We must use functional state update for calibrationStep to avoid stale closures inside this callback
@@ -559,177 +832,147 @@ export default function InterviewChat({ resumeText, onEnd }) {
     // Calculate the 'display' step (treating .5 interim states as the original state just with a success wrapper)
     const displayStep = Math.floor(calibrationStep);
     const isSuccessState = calibrationStep % 1 !== 0;
+    const stepNumber = Math.min(displayStep + 1, 3);
+
+    const stepTitle =
+      displayStep === 0 ? (isSuccessState ? 'Perfect!' : 'Turn Head Left') :
+      displayStep === 1 ? (isSuccessState ? 'Great!' : 'Turn Head Right') :
+      displayStep === 2 ? (isSuccessState ? 'Got it!' : 'Show Your Palm') :
+      'Calibration Complete';
+
+    const stepDescription =
+      displayStep === 0 ? (isSuccessState ? 'Left side tracked successfully.' : 'Slowly turn your head to the left.') :
+      displayStep === 1 ? (isSuccessState ? 'Right side calibrated.' : 'Now turn your head to the right.') :
+      displayStep === 2 ? (isSuccessState ? 'Hand detection confirmed.' : 'Keep all 5 fingers visible for 5 seconds.') :
+      'Starting your interview now...';
+
+    const stepProgress =
+      displayStep === 0 ? Math.min((Math.max(currentYaw, 0) / 12) * 100, 100) :
+      displayStep === 1 ? Math.min((Math.max(-currentYaw, 0) / 12) * 100, 100) :
+      displayStep === 2 ? Math.min((palmHoldMs / PALM_HOLD_REQUIRED_MS) * 100, 100) :
+      100;
 
     return (
-      <div className="flex flex-col h-full bg-[#0a0a0f] text-slate-200">
-        <div className="flex-1 flex flex-col items-center justify-center p-8">
-          <div className="w-full max-w-2xl bg-[#111118] border border-white/[0.06] rounded-2xl overflow-hidden shadow-2xl flex flex-col">
+      <div className="flex flex-col h-full overflow-hidden bg-[#0a0a0f] text-slate-200">
+        <div className="flex-1 min-h-0 overflow-y-auto flex flex-col items-stretch justify-start px-4 md:px-6 lg:px-8 py-4 md:py-6">
+          <div className="w-full max-w-[1220px] mx-auto bg-[#111118] border border-white/[0.06] rounded-2xl overflow-hidden shadow-2xl flex flex-col min-h-[560px] max-h-[calc(100vh-140px)]">
             <div className="p-6 border-b border-white/[0.06] text-center">
                <h3 className="text-2xl font-semibold mb-2">Camera Calibration</h3>
                <p className="text-sm text-slate-400">Let's make sure our face tracking works before we begin.</p>
             </div>
             
-            <div className="p-6 flex flex-col items-center w-full">
-              {/* Assistive Screens on Top */}
-              <div className="w-full max-w-md h-[280px] relative flex flex-col items-center justify-center text-center mb-6">
-                 
-                 <AnimatePresence mode="wait">
-                 {displayStep === 0 && (
-                    <motion.div 
-                        key="step0"
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -20, scale: 0.95 }}
-                        transition={{ duration: 0.4 }}
-                        className="absolute inset-0 flex flex-col items-center justify-center"
-                    >
-                        <h4 className={`text-2xl font-semibold mb-2 transition-colors duration-300 ${isSuccessState ? 'text-emerald-400' : 'text-indigo-400'}`}>
-                            {isSuccessState ? 'Perfect!' : 'Turn Head Left'}
-                        </h4>
-                        <p className={`text-sm mb-6 transition-colors duration-300 ${isSuccessState ? 'text-emerald-500/80' : 'text-slate-400'}`}>
-                            {isSuccessState ? 'Tracking lock acquired.' : 'Slowly turn your head to the left to calibrate tracking.'}
-                        </p>
-                        
-                        <motion.div 
-                            animate={isSuccessState ? { scale: [1, 1.1, 1], borderColor: 'rgba(16, 185, 129, 0.6)', backgroundColor: 'rgba(16, 185, 129, 0.2)' } : {}}
-                            transition={{ duration: 0.5 }}
-                            className={`w-32 h-32 rounded-full border flex items-center justify-center transition-all duration-300 ${isSuccessState ? 'shadow-[0_0_50px_rgba(16,185,129,0.3)] border-emerald-500 bg-emerald-500/20' : 'bg-indigo-500/10 border-indigo-500/30 shadow-[0_0_40px_rgba(99,102,241,0.2)]'}`}
-                        >
-                           {isSuccessState ? (
-                               <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring" }}>
-                                   <CheckCircle size={64} className="text-emerald-400" />
-                               </motion.div>
-                           ) : (
-                               <video autoPlay loop muted playsInline className="w-32 h-32 object-cover rounded-full mix-blend-screen opacity-90">
-                                  <source src="/right left.webm" type="video/webm" />
-                               </video>
-                           )}
-                        </motion.div>
-                    </motion.div>
-                 )}
+            <div className="p-8 w-full min-h-0 overflow-y-auto">
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 w-full">
+                <div className="lg:col-span-8 min-w-0">
+                  <div
+                    className={`w-full aspect-video bg-black rounded-2xl overflow-hidden border relative transition-all duration-300 ${
+                      faceDetected === true
+                        ? 'border-emerald-500/70 shadow-[0_0_24px_rgba(34,197,94,0.25)]'
+                        : faceDetected === false
+                          ? 'border-red-500/65 shadow-[0_0_20px_rgba(239,68,68,0.2)]'
+                          : 'border-white/15'
+                    }`}
+                  >
+                    <CameraPanel onStressUpdate={handleCalibrationStress} isCalibration={true} />
+                  </div>
+                </div>
 
-                 {displayStep === 1 && (
-                    <motion.div 
-                        key="step1"
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -20, scale: 0.95 }}
-                        transition={{ duration: 0.4 }}
-                        className="absolute inset-0 flex flex-col items-center justify-center"
-                    >
-                        <h4 className={`text-2xl font-semibold mb-2 transition-colors duration-300 ${isSuccessState ? 'text-emerald-400' : 'text-indigo-400'}`}>
-                            {isSuccessState ? 'Great!' : 'Turn Head Right'}
-                        </h4>
-                        <p className={`text-sm mb-6 transition-colors duration-300 ${isSuccessState ? 'text-emerald-500/80' : 'text-slate-400'}`}>
-                            {isSuccessState ? 'Opposite side calibrated.' : 'Now slowly turn your head to the right side.'}
-                        </p>
+                <div className="lg:col-span-4 min-w-0 flex items-center justify-center">
+                  <div className="w-full max-w-[360px] flex flex-col items-center text-center gap-4">
+                    <p className="text-xs uppercase tracking-[0.08em] text-slate-400">Step {stepNumber} of 3</p>
 
-                        <motion.div 
-                            animate={isSuccessState ? { scale: [1, 1.1, 1], borderColor: 'rgba(16, 185, 129, 0.6)', backgroundColor: 'rgba(16, 185, 129, 0.2)' } : {}}
-                            transition={{ duration: 0.5 }}
-                            className={`w-32 h-32 rounded-full border flex items-center justify-center transition-all duration-300 ${isSuccessState ? 'shadow-[0_0_50px_rgba(16,185,129,0.3)] border-emerald-500 bg-emerald-500/20' : 'bg-indigo-500/10 border-indigo-500/30 shadow-[0_0_40px_rgba(99,102,241,0.2)]'}`}
-                        >
-                           {isSuccessState ? (
-                               <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring" }}>
-                                   <CheckCircle size={64} className="text-emerald-400" />
-                               </motion.div>
-                           ) : (
-                               <video autoPlay loop muted playsInline className="w-32 h-32 object-cover rounded-full mix-blend-screen opacity-90" style={{ transform: 'scaleX(-1)' }}>
-                                  <source src="/right left.webm" type="video/webm" />
-                               </video>
-                           )}
-                        </motion.div>
-                    </motion.div>
-                 )}
+                    <h4 className={`text-3xl font-semibold leading-tight transition-colors duration-300 ${isSuccessState || displayStep >= 3 ? 'text-emerald-400' : 'text-indigo-300'}`}>
+                      {stepTitle}
+                    </h4>
 
-                 {displayStep === 2 && (
-                    <motion.div 
-                        key="step2"
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -20, scale: 0.95 }}
-                        transition={{ duration: 0.4 }}
-                        className="absolute inset-0 flex flex-col items-center justify-center"
-                    >
-                        <h4 className={`text-2xl font-semibold mb-2 transition-colors duration-300 ${isSuccessState ? 'text-emerald-400' : 'text-emerald-400'}`}>
-                            {isSuccessState ? 'Got it!' : 'Show Palm'}
-                        </h4>
-                        <p className={`text-sm mb-6 transition-colors duration-300 ${isSuccessState ? 'text-emerald-500/80' : 'text-slate-400'}`}>
-                            {isSuccessState ? 'Hand detection confirmed.' : 'Keep all 5 fingers visible for 5 seconds.'}
-                        </p>
+                    <p className="text-sm text-slate-400 max-w-[32ch]">{stepDescription}</p>
 
-                        {!isSuccessState && (
-                          <div className="w-full max-w-[260px] mb-4">
-                            <div className="flex items-center justify-between mb-1.5 text-[11px] text-slate-300">
-                              <span>Hold Progress</span>
-                              <span>{(palmHoldMs / 1000).toFixed(1)}s / 5.0s</span>
-                            </div>
-                            <div className="h-2 rounded-full bg-white/15 overflow-hidden">
-                              <div
-                                className="h-full rounded-full bg-gradient-to-r from-emerald-400 to-teal-400 transition-all duration-150"
-                                style={{ width: `${Math.min((palmHoldMs / PALM_HOLD_REQUIRED_MS) * 100, 100)}%` }}
-                              />
-                            </div>
-                          </div>
+                    <div className="w-full">
+                      <div className="flex items-center justify-end mb-1 text-[11px] text-slate-400">
+                        <span>
+                          {displayStep === 2
+                            ? `${(palmHoldMs / 1000).toFixed(1)}s / 5.0s`
+                            : `${Math.round(stepProgress)}%`}
+                        </span>
+                      </div>
+                      <div className="h-2.5 rounded-full bg-white/12 overflow-hidden">
+                        <div
+                          className="h-full rounded-full bg-gradient-to-r from-emerald-400 to-teal-400 transition-all duration-150"
+                          style={{ width: `${Math.min(stepProgress, 100)}%` }}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="w-full h-[160px] relative flex items-center justify-center">
+                      <AnimatePresence mode="wait">
+                        {displayStep === 0 && !isSuccessState && (
+                          <motion.video
+                            key="guide-step0"
+                            autoPlay
+                            loop
+                            muted
+                            playsInline
+                            initial={{ opacity: 0, y: 8 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -8 }}
+                            transition={{ duration: 0.25 }}
+                            className="w-28 h-28 object-cover rounded-full mix-blend-screen opacity-90"
+                          >
+                            <source src="/right left.webm" type="video/webm" />
+                          </motion.video>
                         )}
 
-                        <motion.div 
-                            animate={isSuccessState ? { scale: [1, 1.1, 1], borderColor: 'rgba(16, 185, 129, 0.6)', backgroundColor: 'rgba(16, 185, 129, 0.3)' } : {}}
-                            transition={{ duration: 0.5 }}
-                            className={`w-32 h-32 rounded-full border flex items-center justify-center transition-all duration-300 ${isSuccessState ? 'shadow-[0_0_50px_rgba(16,185,129,0.4)] border-emerald-500 bg-emerald-500/30' : 'bg-emerald-500/10 border-emerald-500/30 shadow-[0_0_40px_rgba(16,185,129,0.2)]'}`}
-                        >
-                           {isSuccessState ? (
-                               <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring" }}>
-                                   <CheckCircle size={64} className="text-emerald-400" />
-                               </motion.div>
-                           ) : (
-                               <video autoPlay loop muted playsInline className="w-32 h-32 object-cover rounded-full mix-blend-screen opacity-90">
-                                  <source src="/risinghand.webm" type="video/webm" />
-                               </video>
-                           )}
-                        </motion.div>
-                    </motion.div>
-                 )}
+                        {displayStep === 1 && !isSuccessState && (
+                          <motion.video
+                            key="guide-step1"
+                            autoPlay
+                            loop
+                            muted
+                            playsInline
+                            initial={{ opacity: 0, y: 8 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -8 }}
+                            transition={{ duration: 0.25 }}
+                            className="w-28 h-28 object-cover rounded-full mix-blend-screen opacity-90"
+                            style={{ transform: 'scaleX(-1)' }}
+                          >
+                            <source src="/right left.webm" type="video/webm" />
+                          </motion.video>
+                        )}
 
-                 {displayStep >= 3 && (
-                    <motion.div 
-                        key="step3"
-                        initial={{ opacity: 0, scale: 0.8 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ duration: 0.6, type: "spring" }}
-                        className="absolute inset-0 flex flex-col items-center justify-center"
-                    >
-                        <h4 className="text-2xl font-semibold text-emerald-400 mb-2">Calibration Complete</h4>
-                        <p className="text-slate-400 text-sm mb-6">Starting your interview now...</p>
-                        <motion.div 
-                            animate={{ scale: [1, 1.05, 1], boxShadow: ['0 0 50px rgba(16,185,129,0.3)', '0 0 80px rgba(16,185,129,0.6)', '0 0 50px rgba(16,185,129,0.3)'] }}
-                            transition={{ duration: 2, repeat: Infinity }}
-                            className="w-32 h-32 rounded-full bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center"
-                        >
-                           <CheckCircle size={64} className="text-emerald-400" />
-                        </motion.div>
-                    </motion.div>
-                 )}
-                 </AnimatePresence>
-              </div>
+                        {displayStep === 2 && !isSuccessState && (
+                          <motion.video
+                            key="guide-step2"
+                            autoPlay
+                            loop
+                            muted
+                            playsInline
+                            initial={{ opacity: 0, y: 8 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -8 }}
+                            transition={{ duration: 0.25 }}
+                            className="w-28 h-28 object-cover rounded-full mix-blend-screen opacity-90"
+                          >
+                            <source src="/risinghand.webm" type="video/webm" />
+                          </motion.video>
+                        )}
 
-              {/* Camera Panel on Bottom */}
-              <div className="w-full max-w-sm aspect-video bg-black rounded-xl overflow-hidden border border-white/10 mb-6 relative">
-                  <CameraPanel onStressUpdate={handleCalibrationStress} isCalibration={true} />
-                  
-                  {/* Current Yaw overlay inside camera for real-time feedback */}
-                  {displayStep < 2 && !isSuccessState && (
-                     <div className="absolute bottom-3 left-1/2 -translate-x-1/2 text-xs font-mono bg-black/60 backdrop-blur-md px-3 py-1 rounded-full text-indigo-300 border border-white/10 shadow-lg">
-                        Yaw: {currentYaw > 0 ? '+' : ''}{currentYaw.toFixed(1)}°
-                     </div>
-                  )}
-              </div>
-
-              {/* Progress Indicator */}
-              <div className="flex gap-2">
-                 {[0,1,2].map((step) => (
-                    <div key={step} className={`w-2 h-2 rounded-full transition-all duration-500 ${displayStep > step ? 'bg-emerald-500' : displayStep === step && isSuccessState ? 'bg-emerald-400 scale-125' : displayStep === step ? 'bg-indigo-500 scale-125' : 'bg-white/10'}`} />
-                 ))}
+                        {(isSuccessState || displayStep >= 3) && (
+                          <motion.div
+                            key="guide-success"
+                            initial={{ opacity: 0, scale: 0.85 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.9 }}
+                            transition={{ duration: 0.3 }}
+                            className="w-24 h-24 rounded-full bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center"
+                          >
+                            <CheckCircle size={50} className="text-emerald-400" />
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
             
@@ -756,7 +999,7 @@ export default function InterviewChat({ resumeText, onEnd }) {
     <div className="flex h-full">
       {/* LEFT: Camera */}
       <div className="w-[340px] shrink-0 border-r border-white/[0.06] bg-[#111118]">
-        <CameraPanel onStressUpdate={setStress} onIdentityCheck={handleIdentityCheck} />
+        <CameraPanel onStressUpdate={handleLiveStressUpdate} onIdentityCheck={handleIdentityCheck} />
       </div>
 
       {/* RIGHT: Chat */}
@@ -863,22 +1106,6 @@ export default function InterviewChat({ resumeText, onEnd }) {
               )}
             </div>
           )}
-
-          <div className="mb-3 flex items-center justify-between gap-3">
-            <span className="text-[10px] uppercase tracking-[0.08em] text-slate-400">Interviewer Voice</span>
-            <select
-              value={voiceKey}
-              onChange={(e) => setVoiceKey(e.target.value)}
-              disabled={processing || isSpeaking}
-              className="rounded-lg border border-white/10 bg-white/[0.05] px-2.5 py-1.5 text-[11px] text-slate-200 outline-none disabled:opacity-50"
-            >
-              {VOICE_OPTIONS.map((voice) => (
-                <option key={voice.key} value={voice.key}>
-                  {voice.label}
-                </option>
-              ))}
-            </select>
-          </div>
 
           <div
             className={`transition-all duration-300 overflow-hidden ${isSpeaking ? 'max-h-20 opacity-100 mb-4' : 'max-h-0 opacity-0 mb-0'}`}

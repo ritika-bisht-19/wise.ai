@@ -15,24 +15,44 @@ import InterviewChat from '../features/interview/InterviewChat';
 import FeedbackReport from '../features/interview/FeedbackReport';
 
 type Stage = 'upload' | 'interview' | 'feedback';
+type ProgressPhase = 'resume' | 'role' | 'calibration' | 'interview';
+
+const PHASE_ORDER: ProgressPhase[] = ['resume', 'role', 'calibration', 'interview'];
+const PHASE_LABELS: Record<ProgressPhase, string> = {
+    resume: 'Resume Upload',
+    role: 'Role & Verification',
+    calibration: 'Calibration',
+    interview: 'Interview',
+};
 
 export default function InterviewPage() {
     const [stage, setStage] = useState<Stage>('upload');
     const [resumeText, setResumeText] = useState('');
     const [feedbackData, setFeedbackData] = useState<object | null>(null);
+    const [progressPhase, setProgressPhase] = useState<ProgressPhase>('resume');
 
-    const handleUploadSuccess = (text: string) => {
-        setResumeText(text);
+    const handleUploadSuccess = (payload: any) => {
+        const resolvedResumeText = typeof payload === 'string'
+            ? payload
+            : (payload?.resumeText || '');
+
+        setResumeText(resolvedResumeText);
         setStage('interview');
+        setProgressPhase('calibration');
     };
 
-    const handleInterviewEnd = async (history: object[]) => {
+    const handleInterviewEnd = async (history: object[], analytics?: { voiceAnalytics?: object; behavioralAnalytics?: object }) => {
         setStage('feedback');
         try {
             const res = await fetch('/api/feedback', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ history, resumeText }),
+                body: JSON.stringify({
+                    history,
+                    resumeText,
+                    voiceAnalytics: analytics?.voiceAnalytics,
+                    behavioralAnalytics: analytics?.behavioralAnalytics,
+                }),
             });
             const data = await res.json();
             setFeedbackData(data);
@@ -45,7 +65,11 @@ export default function InterviewPage() {
         setStage('upload');
         setFeedbackData(null);
         setResumeText('');
+        setProgressPhase('resume');
     };
+
+    const currentPhaseIndex = PHASE_ORDER.indexOf(progressPhase);
+    const progressPct = ((currentPhaseIndex + 1) / PHASE_ORDER.length) * 100;
 
     return (
         <div className="h-screen bg-[#0a0a0f] text-slate-300 overflow-hidden antialiased flex flex-col selection:bg-violet-500/30">
@@ -75,11 +99,54 @@ export default function InterviewPage() {
                 </div>
             </header>
 
+            {stage !== 'interview' && (
+                <div className="shrink-0 border-b border-white/[0.05] bg-[#090d18]/80 backdrop-blur-xl px-4 md:px-6 py-3">
+                    <div className="mx-auto max-w-[1200px]">
+                        <div className="grid grid-cols-4 gap-2 md:gap-4 mb-2.5">
+                            {PHASE_ORDER.map((item, index) => {
+                                const isDone = index < currentPhaseIndex;
+                                const isActive = item === progressPhase;
+                                return (
+                                    <div key={item} className="flex items-center justify-center md:justify-start gap-2 min-w-0">
+                                        <div
+                                            className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-semibold transition-colors ${
+                                                isDone
+                                                    ? 'bg-emerald-500 text-[#03120a]'
+                                                    : isActive
+                                                        ? 'bg-[#4f63d8] text-white'
+                                                        : 'bg-slate-700/70 text-slate-300'
+                                            }`}
+                                        >
+                                            {isDone ? '✓' : index + 1}
+                                        </div>
+                                        <span
+                                            className={`text-[10px] sm:text-[11px] md:text-xs font-medium truncate ${
+                                                isDone ? 'text-emerald-300' : isActive ? 'text-white' : 'text-slate-400'
+                                            }`}
+                                            title={PHASE_LABELS[item]}
+                                        >
+                                            {PHASE_LABELS[item]}
+                                        </span>
+                                    </div>
+                                );
+                            })}
+                        </div>
+
+                        <div className="h-1.5 rounded-full bg-slate-700/60 overflow-hidden">
+                            <div
+                                className="h-full rounded-full bg-gradient-to-r from-[#7e92ff] via-[#60a5fa] to-[#34d399] transition-all duration-500"
+                                style={{ width: `${progressPct}%` }}
+                            />
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Main content */}
             <main className="flex-1 overflow-hidden">
-                {stage === 'upload' && <FileUpload onUpload={handleUploadSuccess} />}
+                {stage === 'upload' && <FileUpload onUpload={handleUploadSuccess} onProgressChange={setProgressPhase} />}
                 {stage === 'interview' && (
-                    <InterviewChat resumeText={resumeText} onEnd={handleInterviewEnd} />
+                    <InterviewChat resumeText={resumeText} onEnd={handleInterviewEnd} onProgressChange={setProgressPhase} />
                 )}
                 {stage === 'feedback' && (
                     <div className="h-full overflow-y-auto">

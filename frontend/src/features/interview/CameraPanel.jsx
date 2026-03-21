@@ -637,7 +637,7 @@ export default function CameraPanel({ onStressUpdate, isCalibration = false, onI
 
                 {/* Behavioral Stability widget */}
                 {!isCalibration && (
-                <div className="absolute top-3 left-3 px-3 py-2.5 rounded-xl border border-white/15 bg-black/65 backdrop-blur-md shadow-[0_8px_24px_rgba(0,0,0,0.35)]">
+                <div className="absolute top-3 left-1/2 -translate-x-1/2 px-3 py-2.5 rounded-xl border border-white/15 bg-black/65 backdrop-blur-md shadow-[0_8px_24px_rgba(0,0,0,0.35)]">
                     <div className="flex items-center gap-3">
                         <div className="relative w-14 h-14 shrink-0">
                             <svg viewBox="0 0 56 56" className="w-14 h-14">

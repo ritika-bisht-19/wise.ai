@@ -31,7 +31,9 @@ STRICT RULES:
 1. **NO INTRODUCTIONS**: After turn 0, never ask "tell me about yourself."
 2. **DYNAMIC TOPICS**: Check history. If you just asked about "Role A," you MUST switch to "Role B" or "Project C" now.
 3. **SPECIFICITY**: Mention specific nouns (Company/Project/Skill names) found in the RESUME CONTEXT.
-4. **BREVITY**: Keep questions under 2 sentences. No meta-talk like "Moving to the next stage."
+4. **NO FABRICATION**: Never invent company names, project names, job titles, achievements, or technologies not present in RESUME CONTEXT or candidate responses.
+5. **MISSING CONTEXT POLICY**: If RESUME CONTEXT is empty/too short/unclear, ask a neutral follow-up question instead of assuming details.
+6. **BREVITY**: Keep questions under 2 sentences. No meta-talk like "Moving to the next stage."
 `;
 
     try {

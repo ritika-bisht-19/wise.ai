@@ -1,7 +1,7 @@
-import React, { useState, useRef } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Upload, Shield, Zap, Loader2, User } from 'lucide-react';
 
-export default function FileUpload({ onUpload }) {
+export default function FileUpload({ onUpload, onProgressChange }) {
   const [loading, setLoading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const [fileName, setFileName] = useState('');
@@ -14,6 +14,16 @@ export default function FileUpload({ onUpload }) {
   const [step, setStep] = useState(1);
   const [photo, setPhoto] = useState(null);
   const [photoPreview, setPhotoPreview] = useState(null);
+  const [cameraOpen, setCameraOpen] = useState(false);
+  const [cameraError, setCameraError] = useState('');
+  const uploadInputRef = useRef(null);
+  const videoRef = useRef(null);
+  const streamRef = useRef(null);
+
+  useEffect(() => {
+    if (!onProgressChange) return;
+    onProgressChange(step === 1 ? 'resume' : 'role');
+  }, [step, onProgressChange]);
 
   const processFile = async (file) => {
     if (!file || !file.name.toLowerCase().endsWith('.pdf')) return;
@@ -37,24 +47,165 @@ export default function FileUpload({ onUpload }) {
   const handleFileChange = (e) => processFile(e.target.files[0]);
   const handleDrop = (e) => { e.preventDefault(); setDragOver(false); processFile(e.dataTransfer.files[0]); };
 
-  const handlePhotoUpload = async (e) => {
-    const file = e.target.files[0];
+  const registerFaceFile = async (file) => {
     if (!file) return;
-    
-    // Show preview
+
     const url = URL.createObjectURL(file);
     setPhotoPreview(url);
     setPhoto(file);
-    
-    // Register Face via FastAPI
+
     const fd = new FormData();
     fd.append('file', file);
     try {
       await fetch('http://localhost:8001/api/register-face', { method: 'POST', body: fd });
     } catch (err) {
-      console.error("Face registration failed:", err);
+      console.error('Face registration failed:', err);
     }
   };
+
+  const handlePhotoUpload = async (e) => {
+    const file = e.target.files[0];
+    await registerFaceFile(file);
+    e.target.value = '';
+  };
+
+  const stopCamera = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+    }
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+    setCameraOpen(false);
+    setCameraError('');
+  };
+
+  const openCameraCapture = async () => {
+    setCameraError('');
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } },
+        audio: false,
+      });
+      streamRef.current = stream;
+      setCameraOpen(true);
+    } catch (err) {
+      console.error('Camera access failed:', err);
+      setCameraError('Unable to access camera. Please allow camera permission.');
+    }
+  };
+
+  const captureFromCamera = async () => {
+    const videoEl = videoRef.current;
+    if (!videoEl || !videoEl.videoWidth || !videoEl.videoHeight) return;
+
+    const canvas = document.createElement('canvas');
+    canvas.width = videoEl.videoWidth;
+    canvas.height = videoEl.videoHeight;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
+    const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.92));
+    if (!blob) return;
+
+    const autoCropFaceBlob = async (sourceBlob) => {
+      try {
+        const waitForFaceApi = async () => {
+          for (let i = 0; i < 30; i++) {
+            if (window.faceapi) return true;
+            await new Promise((resolve) => setTimeout(resolve, 120));
+          }
+          return false;
+        };
+
+        const faceApiReady = await waitForFaceApi();
+        if (!faceApiReady || !window.faceapi) return sourceBlob;
+
+        if (!window.faceapi.nets.tinyFaceDetector.params) {
+          await window.faceapi.nets.tinyFaceDetector.loadFromUri('/models/face-api');
+        }
+
+        const bitmap = await createImageBitmap(sourceBlob);
+        const detectCanvas = document.createElement('canvas');
+        detectCanvas.width = bitmap.width;
+        detectCanvas.height = bitmap.height;
+        const detectCtx = detectCanvas.getContext('2d');
+        if (!detectCtx) {
+          bitmap.close();
+          return sourceBlob;
+        }
+        detectCtx.drawImage(bitmap, 0, 0);
+
+        const detection = await window.faceapi.detectSingleFace(
+          detectCanvas,
+          new window.faceapi.TinyFaceDetectorOptions()
+        );
+
+        if (detection?.box) {
+          const { x, y, width, height } = detection.box;
+
+          // Expand around detected face and crop as square for stable profile framing.
+          const faceCx = x + width / 2;
+          const faceCy = y + height / 2;
+          const side = Math.max(width, height) * 2.05;
+
+          let sx = faceCx - side / 2;
+          let sy = faceCy - side / 2;
+          let sw = side;
+          let sh = side;
+
+          sx = Math.max(0, sx);
+          sy = Math.max(0, sy);
+          if (sx + sw > bitmap.width) sw = bitmap.width - sx;
+          if (sy + sh > bitmap.height) sh = bitmap.height - sy;
+
+          const cropCanvas = document.createElement('canvas');
+          cropCanvas.width = Math.max(1, Math.floor(sw));
+          cropCanvas.height = Math.max(1, Math.floor(sh));
+          const cropCtx = cropCanvas.getContext('2d');
+          if (!cropCtx) {
+            bitmap.close();
+            return sourceBlob;
+          }
+
+          cropCtx.drawImage(bitmap, sx, sy, sw, sh, 0, 0, cropCanvas.width, cropCanvas.height);
+
+          const croppedBlob = await new Promise((resolve) => cropCanvas.toBlob(resolve, 'image/jpeg', 0.92));
+          bitmap.close();
+          return croppedBlob || sourceBlob;
+        }
+
+        bitmap.close();
+      } catch (err) {
+        console.warn('Auto face crop failed, using original capture:', err);
+      }
+
+      return sourceBlob;
+    };
+
+    const finalBlob = await autoCropFaceBlob(blob);
+
+    const capturedFile = new File([finalBlob], `camera-capture-${Date.now()}.jpg`, { type: 'image/jpeg' });
+    await registerFaceFile(capturedFile);
+    stopCamera();
+  };
+
+  useEffect(() => {
+    if (cameraOpen && videoRef.current && streamRef.current) {
+      videoRef.current.srcObject = streamRef.current;
+      videoRef.current.play().catch(() => undefined);
+    }
+  }, [cameraOpen]);
+
+  useEffect(() => {
+    return () => {
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((track) => track.stop());
+      }
+    };
+  }, []);
 
   const handleStartSession = () => {
     if (!photo) {
@@ -62,6 +213,8 @@ export default function FileUpload({ onUpload }) {
       return;
     }
     
+    if (onProgressChange) onProgressChange('calibration');
+
     onUpload({
       resumeText,
       role,
@@ -94,7 +247,7 @@ export default function FileUpload({ onUpload }) {
         }}
       />
 
-      <div className="relative w-full px-4 md:px-8 py-20">
+      <div className="relative w-full px-4 md:px-8 pt-8 md:pt-10 pb-20 md:pb-20">
         <div className="mx-auto max-w-[1200px] grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-stretch">
           {/* Left narrative panel */}
           <div className="lg:col-span-5 rounded-[28px] border border-[rgba(255,255,255,0.3)] bg-[rgba(255,255,255,0.55)] backdrop-blur-[16px] p-6 md:p-8 lg:p-10 flex flex-col justify-between shadow-[0_20px_60px_rgba(0,0,0,0.08)]">
@@ -212,8 +365,8 @@ export default function FileUpload({ onUpload }) {
                 </div>
               </div>
             ) : (
-              <div className="mx-auto w-full max-w-2xl flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                  <div className="mb-2 flex items-center gap-3">
+                <div className="mx-auto w-full max-w-2xl flex flex-col gap-6 pb-8 md:pb-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                  <div className="mb-5 md:mb-6 flex items-center gap-3">
                     <div className="w-8 h-8 rounded-full bg-[#3f56c5] text-white flex items-center justify-center font-bold text-sm">2</div>
                     <div>
                       <h3 className="text-[20px] md:text-[24px] leading-tight font-season-mix text-slate-900">Role & Verification Setup</h3>
@@ -246,28 +399,50 @@ export default function FileUpload({ onUpload }) {
                     </div>
 
                     <label className="block mt-4 text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">Job Description (Optional)</label>
-                    <textarea 
-                      value={jobDescription}
-                      onChange={(e) => setJobDescription(e.target.value)}
-                      className="w-full bg-white/70 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 h-24 resize-none focus:outline-none focus:ring-2 focus:ring-[#3f56c5]/50"
-                      placeholder="Paste jd here..."
-                    />
-                  </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <textarea 
+                        value={jobDescription}
+                        onChange={(e) => setJobDescription(e.target.value)}
+                        className="w-full bg-white/70 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 h-40 resize-none focus:outline-none focus:ring-2 focus:ring-[#3f56c5]/50"
+                        placeholder="Paste jd here..."
+                      />
 
-                  <div className="bg-white/60 rounded-2xl p-5 border border-white/40 flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-semibold text-slate-900">Identity Verification</p>
-                      <p className="text-xs text-slate-600 mt-1 max-w-[250px]">Upload a photo of your face. We use this to verify it's you during the video interview.</p>
+                      <div className="rounded-xl border border-slate-200 bg-white/70 px-4 py-3 h-40 flex flex-col justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-semibold text-slate-900">Identity Verification</p>
+                          <p className="text-xs text-slate-600 mt-1">Choose one: upload an image or capture live from camera.</p>
+                        </div>
+
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="flex gap-2">
+                            <button
+                              type="button"
+                              onClick={() => uploadInputRef.current?.click()}
+                              className="px-3 py-2 rounded-lg bg-white border border-slate-200 text-xs font-medium text-slate-700 hover:bg-slate-50"
+                            >
+                              Upload File
+                            </button>
+                            <button
+                              type="button"
+                              onClick={openCameraCapture}
+                              className="px-3 py-2 rounded-lg bg-white border border-slate-200 text-xs font-medium text-slate-700 hover:bg-slate-50"
+                            >
+                              Capture Camera
+                            </button>
+                          </div>
+
+                          <label className={`w-16 h-16 shrink-0 rounded-full border-2 border-dashed flex items-center justify-center overflow-hidden transition-colors ${photoPreview ? 'border-emerald-500' : 'border-[#3f56c5]/40 bg-white'}`}>
+                            {photoPreview ? (
+                              <img src={photoPreview} alt="User Face" className="w-full h-full object-cover" />
+                            ) : (
+                              <User size={20} className="text-slate-400" />
+                            )}
+                          </label>
+                        </div>
+
+                        <input ref={uploadInputRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
+                      </div>
                     </div>
-                    
-                    <label className={`w-20 h-20 shrink-0 rounded-full border-2 border-dashed flex items-center justify-center cursor-pointer overflow-hidden transition-colors ${photoPreview ? 'border-emerald-500' : 'border-[#3f56c5]/40 hover:border-[#3f56c5] bg-white'}`}>
-                      <input type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
-                      {photoPreview ? (
-                        <img src={photoPreview} alt="User Face" className="w-full h-full object-cover" />
-                      ) : (
-                        <User size={24} className="text-slate-400" />
-                      )}
-                    </label>
                   </div>
 
                   <button 
@@ -282,6 +457,50 @@ export default function FileUpload({ onUpload }) {
           </div>
         </div>
       </div>
+
+      {cameraOpen && (
+        <div className="fixed inset-0 z-[90] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-[720px] rounded-2xl border border-white/20 bg-[#111827] p-4 md:p-5 shadow-2xl">
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="text-white font-semibold text-base">Capture Face Photo</h4>
+              <button
+                type="button"
+                onClick={stopCamera}
+                className="px-2.5 py-1.5 rounded-lg text-xs text-slate-200 bg-white/10 hover:bg-white/20"
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="rounded-xl overflow-hidden bg-black border border-white/10">
+              <video ref={videoRef} autoPlay playsInline muted className="w-full h-[260px] md:h-[360px] object-cover" />
+            </div>
+
+            <div className="mt-4 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={stopCamera}
+                className="px-3.5 py-2 rounded-lg text-sm text-slate-200 bg-white/10 hover:bg-white/20"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={captureFromCamera}
+                className="px-3.5 py-2 rounded-lg text-sm text-white bg-[#3f56c5] hover:bg-[#3348b4]"
+              >
+                Capture Photo
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {!!cameraError && (
+        <div className="fixed right-4 bottom-4 z-[95] rounded-xl border border-red-300/40 bg-red-500/15 text-red-100 px-4 py-3 text-sm">
+          {cameraError}
+        </div>
+      )}
     </div>
   );
 }
