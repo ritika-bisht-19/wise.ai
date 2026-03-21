@@ -5,6 +5,12 @@ import { demoTabs } from '@/models/home.data';
 export default function DemoSection() {
   const { activeTab, setActiveTab, content } = useDemoTabs();
   const sectionRef = useScrollReveal();
+  const interviewerVoices = [
+    { name: 'Adam', src: '/assets/images/interviewers/adam-circle-modified.png', motif: '/assets/images/decorative-motif-01.svg' },
+    { name: 'Rachel', src: '/assets/images/interviewers/rachel-modified.png', motif: '/assets/images/decorative-motif-02.svg' },
+    { name: 'Bella', src: '/assets/images/interviewers/bella-modified.png', motif: '/assets/images/decorative-motif-03.svg' },
+    { name: 'Antoni', src: '/assets/images/interviewers/antoni-modified.png', motif: '/assets/images/decorative-motif-04.svg' },
+  ];
 
   return (
     <section ref={sectionRef} className="relative w-full overflow-x-clip">
@@ -32,11 +38,27 @@ export default function DemoSection() {
           </div>
           <div className="p-6 md:p-12 flex flex-col items-center justify-center flex-1">
             <p className="font-matter text-base text-[#666] mb-8 text-center">{content.description}</p>
-            {/* Decorative motif illustrations */}
-            <div className="flex items-center justify-center gap-8 mb-8">
-              <img src="/assets/images/decorative-motif-01.svg" alt="" className="w-24 md:w-32 h-auto opacity-80 hover:opacity-100 hover:scale-110 transition-all duration-500" />
-              <img src="/assets/images/decorative-motif-02.svg" alt="" className="w-24 md:w-32 h-auto opacity-80 hover:opacity-100 hover:scale-110 transition-all duration-500" />
-              <img src="/assets/images/decorative-motif-03.svg" alt="" className="w-24 md:w-32 h-auto opacity-80 hover:opacity-100 hover:scale-110 transition-all duration-500" />
+            {/* Decorative interviewer motifs */}
+            <div className="flex flex-wrap items-start justify-center gap-8 md:gap-12 mb-8">
+              {interviewerVoices.map((voice) => (
+                  <div key={voice.name} className="flex flex-col items-center gap-2.5">
+                  <div className="relative w-44 h-44 rounded-full overflow-hidden flex items-center justify-center">
+                    <img
+                      src={voice.motif}
+                      alt=""
+                      className="absolute inset-0 w-full h-full object-contain opacity-90"
+                    />
+                    <div className="absolute inset-[8%] rounded-full overflow-hidden bg-white/15">
+                      <img
+                        src={voice.src}
+                        alt={voice.name}
+                        className="w-[110%] h-[110%] object-cover object-[center_20%] scale-100 hover:scale-105 transition-transform duration-500"
+                      />
+                    </div>
+                  </div>
+                  <p className="font-matter text-sm md:text-base font-semibold text-[#4B5563]">{voice.name}</p>
+                </div>
+              ))}
             </div>
             {/* Glassmorphism Begin Interview button */}
             <button className="relative px-8 py-3.5 rounded-full font-season-mix font-medium text-base md:text-lg btn-glow" style={{ backdropFilter: 'blur(20px) saturate(1.2) contrast(1.05) brightness(1.02)', background: 'linear-gradient(135deg, rgba(255,255,255,0.25) 0%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0.2) 100%)', border: '1px solid rgba(255,255,255,0.3)', boxShadow: '0 4px 16px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.4), inset 0 -1px 0 rgba(0,0,0,0.05)' }}>

@@ -5,8 +5,8 @@
 	<circle cx="150.113" cy="150.113" r="144" stroke="#fff" stroke-opacity=".25" stroke-width="2" />
 	<defs>
 		<linearGradient id="paint0_linear_8128_8621" x1="150.113" x2="150.113" y1="0" y2="300.227" gradientUnits="userSpaceOnUse">
-			<stop stop-color="#FBFBFB" />
-			<stop offset="1" stop-color="#8196F8" />
+			<stop stop-color="#C9F7FF" />
+			<stop offset="1" stop-color="#4B78FF" />
 		</linearGradient>
 		<filter id="filter0_i_8128_8621" width="300.227" height="312.227" x="0" y="0" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse">
 			<feFlood flood-opacity="0" result="BackgroundImageFix" />
@@ -15,7 +15,7 @@
 			<feOffset dy="12" />
 			<feGaussianBlur stdDeviation="25" />
 			<feComposite in2="hardAlpha" k2="-1" k3="1" operator="arithmetic" />
-			<feColorMatrix type="matrix" values="0 0 0 0 0.694118 0 0 0 0 0.12549 0 0 0 0 0.376471 0 0 0 1 0" />
+			<feColorMatrix type="matrix" values="0 0 0 0 0.239216 0 0 0 0 0.537255 0 0 0 0 1 0 0 0 1 0" />
 			<feBlend in2="shape" mode="normal" result="effect1_innerShadow_8128_8621" />
 		</filter>
 	</defs>

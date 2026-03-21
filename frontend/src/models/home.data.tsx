@@ -73,7 +73,7 @@ export const demoTabs: DemoTab[] = [
 ];
 
 export const demoContent: Record<string, DemoContent> = {
-  mock: { title: 'Try a Mock Interview', description: 'Choose an interview type and start practising with our AI interviewer.' },
+  mock: { title: 'Try a Mock Interview', description: 'Choose an interview type and pick one of our 4 AI interviewer voices to start practicing with confidence.' },
   stress: { title: 'Real-Time Stress Dashboard', description: 'Monitor your stress levels as you practise — heart rate, vocal tremors, micro-expressions.' },
   voice: { title: 'Voice Coaching Studio', description: 'Improve pacing, tone, filler-word usage, and clarity with AI-driven feedback.' },
 };
