@@ -3,7 +3,16 @@ import { useNavbar } from '@/hooks/useNavbar';
 import { navLinks } from '@/models/navigation.data';
 
 export default function Navbar() {
-  const { mobileOpen, setMobileOpen, openDropdown, setOpenDropdown, scrolled } = useNavbar();
+  const {
+    mobileOpen,
+    setMobileOpen,
+    openDropdown,
+    setOpenDropdown,
+    openDropdownMenu,
+    scheduleCloseDropdown,
+    cancelScheduledClose,
+    scrolled,
+  } = useNavbar();
 
   return (
     <header className="top-0 right-0 left-0 z-10000 fixed w-full">
@@ -46,8 +55,8 @@ export default function Navbar() {
                 <div
                   key={item.label}
                   className="relative"
-                  onMouseEnter={() => setOpenDropdown(item.label)}
-                  onMouseLeave={() => setOpenDropdown(null)}
+                  onMouseEnter={() => openDropdownMenu(item.label)}
+                  onMouseLeave={scheduleCloseDropdown}
                 >
                   <button className="flex items-center gap-1.5 px-4 py-2 rounded-lg transition-all duration-200 hover:bg-black/5">
                     <span className="font-medium text-xs uppercase tracking-[1px] font-matter text-black">
@@ -58,16 +67,18 @@ export default function Navbar() {
                     </svg>
                   </button>
                   {openDropdown === item.label && (
-                    <div className="absolute top-full left-0 mt-1 bg-white/95 backdrop-blur-lg rounded-xl shadow-lg border border-[#f0f0f0] py-2 min-w-[200px] z-50 animate-dropdown-in">
-                      {item.children.map((child) => (
-                        <Link
-                          key={child.label}
-                          to={child.href}
-                          className="block px-4 py-2.5 text-sm font-matter text-[#3d3d3d] hover:bg-[#f5f5f5] hover:pl-5 transition-all duration-200"
-                        >
-                          {child.label}
-                        </Link>
-                      ))}
+                    <div className="absolute top-full left-0 pt-1.5 z-50" onMouseEnter={cancelScheduledClose} onMouseLeave={scheduleCloseDropdown}>
+                      <div className="bg-white/95 backdrop-blur-lg rounded-xl shadow-lg border border-[#f0f0f0] py-2 min-w-[200px] animate-dropdown-in">
+                        {item.children.map((child) => (
+                          <Link
+                            key={child.label}
+                            to={child.href}
+                            className="block px-4 py-2.5 text-sm font-matter text-[#3d3d3d] hover:bg-[#f5f5f5] hover:pl-5 transition-all duration-200"
+                          >
+                            {child.label}
+                          </Link>
+                        ))}
+                      </div>
                     </div>
                   )}
                 </div>

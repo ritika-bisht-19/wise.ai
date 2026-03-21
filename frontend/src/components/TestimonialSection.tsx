@@ -10,19 +10,11 @@ export default function TestimonialSection() {
           {/* Logo */}
           <img src="/wise-logo.svg" alt="W.I.S.E." className="h-6 md:h-8 w-auto" />
           {/* Heading */}
-          <h3 className="font-season-mix font-bold text-2xl md:text-[32px] leading-[135%] text-tx">What our users say</h3>
+          <h3 className="font-season-mix font-bold text-2xl md:text-[32px] leading-[135%] text-tx">Why We Built W.I.S.E.</h3>
           {/* Quote */}
           <blockquote className="text-xl md:text-[24px] font-matter leading-[165%] text-tx-secondary max-w-[800px]">
-            &ldquo;W.I.S.E. completely changed how I prepared for interviews. I went from freezing up to landing offers at three top companies. The real-time stress analytics helped me understand my anxiety triggers, and the personalised coaching gave me a clear roadmap to improve.&rdquo;
+            &ldquo;Many students know the content but struggle with pressure during interviews. We built W.I.S.E. to simulate realistic interviews and provide feedback on both communication and stress patterns.&rdquo;
           </blockquote>
-          {/* Author */}
-          <div className="flex items-center gap-4">
-            <img src="/assets/images/testimonial-profile.png" alt="Priya Sharma" className="w-12 h-12 rounded-full object-cover" />
-            <div>
-              <p className="font-matter font-semibold text-tx">Priya Sharma</p>
-              <p className="font-matter text-sm text-tx-tertiary">Software Engineer at Google &middot; IIT Delhi &apos;23</p>
-            </div>
-          </div>
         </div>
       </div>
     </section>
