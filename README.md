@@ -4,6 +4,20 @@
 
 ---
 
+##  Meet Team Ananta (VIVA & Project Docs)
+
+If you are a mentor or examiner asking *"Tumne kya banaya?"*, click on the team member's name below to see their exact contribution script and technical details:
+
+-  **[Ritika Bisht (Frontend Architecture)](./docs/README_RITIKA.md)**
+-  **[Anika Dewari (Lead & Multimodal Analysis)](./docs/README_ANIKA.md)**
+-  **[Ayush Negi (Backend & Resume Engine)](./docs/README_AYUSH.md)**
+-  **[Shalini Mehra (Voice Intelligence & BSI)](./docs/README_SHALINI.md)**
+
+*(For project setup and frontend architecture refactoring guidelines, see the [Project Setup Instructions](./docs/project_setup_instructions.md)).*
+*(For future expansions and roadmap, check out our [Phase 3 Feature Improvements](./docs/README_PHASE_3.md)).*
+
+---
+
 ## what this is
 
 W.I.S.E. runs a full end-to-end mock technical interview in the browser. You upload your resume and a photo of your face, then get asked progressively harder questions by an AI interviewer with a real TTS voice. The webcam watches you the whole time — tracking stress, blink rate, gaze direction, head movement — and at the end you get a detailed hiring committee-style report. If the face on the webcam doesn't match the registered photo, the interview stops.
