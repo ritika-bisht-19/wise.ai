@@ -1,8 +1,10 @@
 import { Link } from 'react-router-dom';
+import { useAuth0 } from '@auth0/auth0-react';
 import { useNavbar } from '@/hooks/useNavbar';
 import { navLinks } from '@/models/navigation.data';
 
 export default function Navbar() {
+  const { loginWithRedirect, logout, isAuthenticated, user } = useAuth0();
   const {
     mobileOpen,
     setMobileOpen,
@@ -99,6 +101,25 @@ export default function Navbar() {
                 <span className="absolute inset-0 opacity-0 rounded-full transition-opacity duration-700 bg-gradient-to-r from-[#A5BBFC] via-[#D5E2FF] to-[#FFA133] group-hover:opacity-100 group-active:opacity-100 shadow-[inset_0_0_12px_2px_rgba(255,255,255,1)]" aria-hidden="true" />
                 <span className="z-10 relative flex items-center gap-2 transition-all duration-500">Contact Us</span>
               </Link>
+              {isAuthenticated ? (
+                <div className="flex items-center gap-3">
+                  <span className="text-sm font-matter text-black">{user?.name}</span>
+                  <button
+                    onClick={() => logout({ logoutParams: { returnTo: window.location.origin } })}
+                    className="relative inline-flex items-center justify-center cursor-pointer font-season-mix font-medium transition-all duration-500 overflow-hidden rounded-full hover:duration-700 active:scale-95 active:duration-200 touch-manipulation px-5 py-3 text-base bg-red-500 text-white shadow-[inset_0_0_12px_rgba(255,255,255,0.2),0px_0px_2px_0_rgba(0,0,0,0.1)] group w-fit text-nowrap"
+                  >
+                    <span className="z-10 relative flex items-center gap-2">Logout</span>
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => loginWithRedirect()}
+                  className="relative inline-flex items-center justify-center cursor-pointer font-season-mix font-medium transition-all duration-500 overflow-hidden rounded-full hover:duration-700 active:scale-95 active:duration-200 touch-manipulation px-5 py-3 text-base bg-[#0A2156] text-white shadow-[inset_0_0_12px_rgba(100,200,255,0.3),0px_0px_2px_0_rgba(0,0,0,0.1)] group w-fit text-nowrap"
+                >
+                  <span className="absolute inset-0 opacity-0 transition-opacity duration-700 bg-[linear-gradient(90deg,#0A2156_0%,#1a4d7a_100%)] group-hover:opacity-100 group-active:opacity-100 rounded-full shadow-[inset_0px_0px_12px_2px_rgba(100,200,255,0.4)]" aria-hidden="true" />
+                  <span className="z-10 relative flex items-center gap-2 transition-all duration-500">Login</span>
+                </button>
+              )}
             </div>
           </div>
         </nav>
@@ -144,6 +165,32 @@ export default function Navbar() {
               >
                 Start Mock Interview
               </Link>
+              {isAuthenticated ? (
+                <>
+                  <div className="mt-4 text-center px-5 py-3 text-base font-matter text-black">
+                    {user?.name}
+                  </div>
+                  <button
+                    onClick={() => {
+                      logout({ logoutParams: { returnTo: window.location.origin } });
+                      setMobileOpen(false);
+                    }}
+                    className="text-center px-5 py-3 text-base bg-red-500 text-white rounded-full font-season-mix font-medium hover:bg-red-600 active:scale-95 transition-all duration-300"
+                  >
+                    Logout
+                  </button>
+                </>
+              ) : (
+                <button
+                  onClick={() => {
+                    loginWithRedirect();
+                    setMobileOpen(false);
+                  }}
+                  className="text-center px-5 py-3 text-base bg-[#0A2156] text-white rounded-full font-season-mix font-medium hover:bg-[#1a4d7a] active:scale-95 transition-all duration-300"
+                >
+                  Login
+                </button>
+              )}
             </div>
           )}
         </div>
