@@ -82,9 +82,9 @@ wise.ai/
 │   │       ├── speak.js               # POST /api/speak
 │   │       ├── transcribe.js          # POST /api/transcribe
 │   │       └── feedback.js            # POST /api/feedback
-│   ├── .env                           # API keys (see env vars section below)
 │   └── package.json
 │
+├── .env                               # API keys (see env vars section below)
 ├── ai-services/
 │   └── face_api/
 │       ├── main.py                    # FastAPI — /api/register-face + /api/verify-face
@@ -226,7 +226,7 @@ node src/app.js
 # → http://localhost:3000
 ```
 
-create `backend/.env` with:
+create `.env` in the root of the project with:
 ```
 GROQ_API_KEY=your_groq_key
 ELEVENLABS_API_KEY=your_elevenlabs_key
@@ -431,7 +431,7 @@ plays success audio chime (C5 → E5) on each step completion.
 
 ---
 
-## env vars (backend/.env)
+## env vars (.env)
 
 ```bash
 GROQ_API_KEY=gsk_...          # required — chat + transcribe
