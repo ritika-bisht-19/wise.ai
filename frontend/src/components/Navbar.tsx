@@ -9,7 +9,6 @@ export default function Navbar() {
     mobileOpen,
     setMobileOpen,
     openDropdown,
-    setOpenDropdown,
     openDropdownMenu,
     scheduleCloseDropdown,
     cancelScheduledClose,

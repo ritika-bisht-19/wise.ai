@@ -25,6 +25,8 @@ const FILLER_PATTERNS = [
 
 export default function InterviewChat({ resumeText, onEnd, onProgressChange }) {
   const PALM_HOLD_REQUIRED_MS = 5000;
+  const IDENTITY_GRACE_MS = 15000;
+  const IDENTITY_MISMATCH_COOLDOWN_MS = 6000;
   const [joined, setJoined] = useState(false);
   const [messages, setMessages] = useState([]);
   const [isListening, setIsListening] = useState(false);
@@ -54,6 +56,8 @@ export default function InterviewChat({ resumeText, onEnd, onProgressChange }) {
   const audioRef = useRef(null);
   const messagesEndRef = useRef(null);
   const hasStarted = useRef(false);
+  const joinedAtRef = useRef(0);
+  const lastMismatchCountedAtRef = useRef(0);
   const waveContainerRef = useRef(null);
   const siriWaveRef = useRef(null);
   const audioCtxRef = useRef(null);
@@ -377,6 +381,8 @@ export default function InterviewChat({ resumeText, onEnd, onProgressChange }) {
   useEffect(() => {
     if (!joined || hasStarted.current || isCalibrating) return;
     hasStarted.current = true;
+    joinedAtRef.current = Date.now();
+    lastMismatchCountedAtRef.current = 0;
     sendMessage('START', true);
     return () => {
       if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
@@ -557,7 +563,20 @@ export default function InterviewChat({ resumeText, onEnd, onProgressChange }) {
       setIdentityStatus('match');
       setIdentityBannerVisible(false);
     } else {
+      const now = Date.now();
+      const hasUserAnswer = messages.some((msg) => msg?.sender === 'user');
+      const joinedAt = joinedAtRef.current || now;
+      const inGraceWindow = now - joinedAt < IDENTITY_GRACE_MS;
+      const inCooldownWindow = now - lastMismatchCountedAtRef.current < IDENTITY_MISMATCH_COOLDOWN_MS;
+
       setIdentityStatus('mismatch');
+
+      // Avoid abrupt session termination due startup jitter or rapid duplicate checks.
+      if (!hasUserAnswer || inGraceWindow || inCooldownWindow) {
+        return;
+      }
+
+      lastMismatchCountedAtRef.current = now;
       // Always increment — counter never goes back down
       const next = identityFailRef.current + 1;
       identityFailRef.current = next;
@@ -569,7 +588,7 @@ export default function InterviewChat({ resumeText, onEnd, onProgressChange }) {
         setTimeout(() => onEnd(messages, buildInterviewAnalyticsSummary()), 2500);
       }
     }
-  }, [messages, onEnd, buildInterviewAnalyticsSummary]);
+  }, [messages, onEnd, buildInterviewAnalyticsSummary, IDENTITY_GRACE_MS, IDENTITY_MISMATCH_COOLDOWN_MS]);
 
   // ═══════════════════════════════════════════════════════
   // JOIN SCREEN

@@ -12,3 +12,8 @@ dist-ssr/
 speech_api/venv/
 ai-services/face_api/.venv/
 ai-services/face_api/.venv311/
+
+# Temporary Backup / Debugging Files
+backend/node_modules_broken_*/
+frontend/.node_modules_*/
+frontend/check_errors.cjs
