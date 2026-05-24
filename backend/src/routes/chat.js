@@ -16,16 +16,15 @@ const STAGES = [
 router.post('/chat', async (req, res) => {
     const { history, resumeText } = req.body;
     const turnCount = Math.floor(history.length / 2);
-
     const stageEntry = STAGES.find(s => turnCount >= s.range[0] && turnCount <= s.range[1]);
     if (!stageEntry) {
         return res.json({ reply: 'Thank you for your time. That concludes our interview.' });
     }
-
+    
     const systemInstruction = `
-ROLE: Software Engineer
-INTERVIEW STAGE: ${stageEntry.stage} (Turn ${turnCount}/12).
-GOAL: ${stageEntry.goal}
+    ROLE: Software Engineer
+    INTERVIEW STAGE: ${stageEntry.stage} (Turn ${turnCount}/12).
+    GOAL: ${stageEntry.goal}
 RESUME CONTEXT: """${resumeText}"""
 STRICT RULES:
 1. **NO INTRODUCTIONS**: After turn 0, never ask "tell me about yourself."
@@ -36,23 +35,25 @@ STRICT RULES:
 6. **BREVITY**: Keep questions under 2 sentences. No meta-talk like "Moving to the next stage."
 `;
 
-    try {
-        const completion = await groq.chat.completions.create({
-            messages: [
-                { role: 'system', content: systemInstruction },
-                ...history.map(m => ({
-                    role: m.sender === 'user' ? 'user' : 'assistant',
-                    content: m.text,
-                })),
-            ],
-            model: 'llama-3.1-8b-instant',
-            temperature: 0.4,
-        });
-        res.json({ reply: completion.choices[0]?.message?.content });
-    } catch (err) {
-        console.error('Chat error:', err);
-        res.status(500).json({ error: 'AI error' });
-    }
+try {
+    const completion = await groq.chat.completions.create({
+        messages: [
+            { role: 'system', content: systemInstruction },
+            ...history.map(m => ({
+                role: m.sender === 'user' ? 'user' : 'assistant',
+                content: m.text,
+            })),
+        ],
+        model: 'llama-3.1-8b-instant',
+        temperature: 0.4,
+    });
+    res.json({ reply: completion.choices[0]?.message?.content });
+} catch (err) {
+    console.error('Chat error:', err);
+    res.status(500).json({ error: 'AI error' });
+}
+console.log("Incoming history:", history);
+console.log("History length:", history.length);
+console.log("Turn count:", turnCount);
 });
-
 export default router;

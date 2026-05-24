@@ -521,26 +521,76 @@ export default function InterviewChat({ resumeText, onEnd, onProgressChange }) {
   };
 
   const sendMessage = async (text, isSystem = false) => {
-    if (!text) return;
-    const newMsg = { sender: 'user', text };
-    if (!isSystem) setMessages(prev => [...prev, newMsg]);
-    setProcessing(true);
-    try {
-      const res = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ history: isSystem ? [] : [...messages, newMsg], resumeText, message: text })
-      });
-      const data = await res.json();
-      const aiMsg = { sender: 'ai', text: data.reply };
-      setMessages(prev => isSystem ? [aiMsg] : [...prev, aiMsg]);
-      speakText(data.reply);
-      if (data.reply.toLowerCase().includes('concludes our interview')) {
-        setTimeout(() => onEnd([...messages, newMsg, aiMsg], buildInterviewAnalyticsSummary()), 4000);
-      }
-    } catch (e) { console.error('Chat error:', e); }
-    finally { setProcessing(false); }
-  };
+  if (!text) return;
+
+  setProcessing(true);
+
+  try {
+    let updatedMessages;
+
+    if (isSystem) {
+      updatedMessages = [];
+    } else {
+      const userMessage = {
+        sender: 'user',
+        text
+      };
+
+      updatedMessages = [
+        ...messages,
+        userMessage
+      ];
+
+      setMessages(updatedMessages);
+    }
+
+    console.log("Sending history:", updatedMessages);
+
+    const res = await fetch('/api/chat', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        history: updatedMessages,
+        resumeText
+      })
+    });
+
+    const data = await res.json();
+
+    const assistantMsg = {
+      sender: 'assistant',
+      text: data.reply || ''
+    };
+
+    const finalMessages = [
+      ...updatedMessages,
+      assistantMsg
+    ];
+
+    setMessages(finalMessages);
+
+    speakText(data.reply || '');
+
+    if (
+      data.reply?.toLowerCase()
+        .includes('concludes our interview')
+    ) {
+      setTimeout(() => {
+        onEnd(
+          finalMessages,
+          buildInterviewAnalyticsSummary()
+        );
+      }, 4000);
+    }
+
+  } catch (e) {
+    console.error('Chat error:', e);
+  } finally {
+    setProcessing(false);
+  }
+};
 
   const formatTime = s => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
   const timeWarning = timeLeft < 120;
